@@ -1,0 +1,17 @@
+version: '3.4'
+
+services:
+  wgwebsite:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    ports:
+      - "0.0.0.0:1234:80"
+      - "0.0.0.0:4321:443"
+    volumes:
+      - ~/.aspnet/https:/root/.aspnet/https:ro
+      - ~/.microsoft/usersecrets:/root/.microsoft/usersecrets:ro
+
+  karmadb:
+    volumes:
+      - ./dbdata:/var/lib/mysql

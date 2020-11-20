@@ -1,0 +1,21 @@
+version: '3.4'
+
+services:
+  wgwebsite:
+    image: ${DOCKER_REGISTRY-}wgwebsite
+    build:
+      context: .
+      dockerfile: WgWebsite/Dockerfile
+
+  karmadb:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: r1chl1k35b33r4nd
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+
+volumes:
+  dbdata: 

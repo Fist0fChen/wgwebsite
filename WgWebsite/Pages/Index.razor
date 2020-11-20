@@ -1,0 +1,17 @@
+﻿@page "/"
+
+<AuthorizeView>
+    <NotAuthorized>
+        <div style="text-align: center;">
+            <svg id="logo" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="300" height="300">
+                <polyline points="150,5 150,295" stroke-linecap="round" stroke-width="5" stroke="#f8c92b"></polyline>
+                <polyline points="75,45 75, 255" stroke-linecap="round" stroke-width="5" stroke="#f8c92b"></polyline>
+                <polyline points="75,185 150, 185" stroke-linecap="round" stroke-width="5" stroke="#f8c92b"></polyline>
+                <polyline points="150,45 225,115 150,185 225,255" stroke-linecap="round" stroke-width="5" stroke="#f8c92b" fill="none"></polyline>
+            </svg>
+        </div>
+    </NotAuthorized>
+    <Authorized>
+        @context.User.Claims.FirstOrDefault(c => c.Type == "UserId")
+    </Authorized>
+</AuthorizeView>
