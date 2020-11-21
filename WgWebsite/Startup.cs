@@ -40,6 +40,7 @@ namespace WgWebsite
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
             services.AddSingleton<Translator>();
+            services.AddSingleton<DataBaseService>();
 
             services.AddDbContext<KarmaDataContext>();
             // for authentication with cookies

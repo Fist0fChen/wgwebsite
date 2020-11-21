@@ -36,6 +36,7 @@ namespace WgWebsite.Pages
             var mySHA256 = SHA256.Create();
             User user;
             string userid = "";
+            List<string> roles = new List<string>();
             if(!Program.Test)
                 foreach(var u in dbcontext.Users){
                     if((u.Name == paramUsername || u.Email == paramUsername) &&
@@ -43,6 +44,7 @@ namespace WgWebsite.Pages
                     {
                         user = u;
                         userid = user.UserId.ToString();
+                        roles = user.Role.Split(" ").ToList();
                         break;
                     }
                 }
@@ -75,9 +77,9 @@ namespace WgWebsite.Pages
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, paramUsername),
-                new Claim("UserId", userid),
-                new Claim(ClaimTypes.Role, "User")
+                new Claim("UserId", userid)
             };
+            roles.ForEach(r => claims.Add(new Claim("Role", r)));
 
             var claimsIdentity = new ClaimsIdentity(
                 claims, CookieAuthenticationDefaults.AuthenticationScheme);

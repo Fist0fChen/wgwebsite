@@ -11,5 +11,6 @@ namespace WgWebsite.Model
         public string BrowsePosition { get; set; }
         public string Theme { get; set; }
         public string Notifications { get; set; }
+        public string Language { get; set; }
     }
 }

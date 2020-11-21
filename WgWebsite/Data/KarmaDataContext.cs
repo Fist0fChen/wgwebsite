@@ -21,5 +21,7 @@ namespace WgWebsite.Data
         public DbSet<KarmaEntry> TasksDone { get; set; }
         public DbSet<TodoTask> Todos { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<KarmaBalanceEntry> BalanceEntries { get; set; }
+        public DbSet<KarmaBalance> KarmaBalances { get; set; }
     }
 }
