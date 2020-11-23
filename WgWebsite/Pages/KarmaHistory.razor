@@ -1,0 +1,70 @@
+﻿@page "/karmahistory"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+@using System.Linq
+
+@code {
+}
+
+<AuthorizeView>
+    <Authorized>
+        @{
+            var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
+            void DeleteEntry(long entryid)
+            {
+                if (db.DeleteKarmaEntry(entryid))
+                {
+                    JSRuntime.InvokeVoidAsync("reload");
+                }
+                else
+                {
+                    JSRuntime.InvokeVoidAsync("highlightButtonFail", entryid + "-task", trans.WordFor("Failed"));
+                }
+            }
+        }
+        @if (thisuser.Role.Split(' ').Any(r => r == Model.Roles.Karma))
+        {
+            var tasks = db.GetKarmaTasks();
+            var karmadata = db.GetKarmaStats();
+            foreach (var user in karmadata)
+            {
+                <div class="card">
+                    <div class="card-header" style="font-weight: bold; font-size: 20px;">
+                        <div style="float: left;">@user.Name</div><div style="float: right">@trans.WordFor("Total Karma") @user.Entries.Aggregate(0, (e1, e2) => e1 + e2.Karma)</div>
+                    </div>
+
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>@trans.WordFor("Task")</th>
+                                    <th>@trans.WordFor("Date")</th>
+                                    <th>@trans.WordFor("Karma")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in user.Entries)
+                                {
+                                    var entryid = entry.KarmaEntryId;
+                                <tr>
+                                    <td>@tasks.FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId).Name
+                                        @if (thisuser.UserId == user.UserId)
+                                        {
+                                            <button id="@(entryid)-task" class="btn btn-danger" @onclick=@(e => DeleteEntry(entryid))>
+                                                <img style="width:20px" src="@Model.Themes.Icon("minus")" />
+                                            </button>
+                                        }
+                                    </td>
+                                    <td>@entry.Timestamp</td>
+                                    <td>@entry.Karma</td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+    </Authorized>
+</AuthorizeView>

@@ -10,5 +10,6 @@ namespace WgWebsite.Model
         public IEnumerable<KarmaBalanceEntry> Entries { get; set; }
         public DateTime BalanceFrom { get; set; }
         public DateTime BalanceTo { get; set; }
+        public bool Acknowledged { get; set; }
     }
 }

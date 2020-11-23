@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WgWebsite.Data;
 
 namespace WgWebsite.Migrations
 {
     [DbContext(typeof(KarmaDataContext))]
-    partial class KarmaDataContextModelSnapshot : ModelSnapshot
+    [Migration("20201123161010_linkedbalanceentry")]
+    partial class linkedbalanceentry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -274,7 +276,7 @@ namespace WgWebsite.Migrations
                         .HasForeignKey("KarmaTaskId");
 
                     b.HasOne("WgWebsite.Model.User", "User")
-                        .WithMany("Entries")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

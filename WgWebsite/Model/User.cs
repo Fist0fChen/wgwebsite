@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 namespace WgWebsite.Model
 {
     public class User
@@ -12,5 +12,6 @@ namespace WgWebsite.Model
         public string Theme { get; set; }
         public string Notifications { get; set; }
         public string Language { get; set; }
+        public IEnumerable<KarmaEntry> Entries { get; set; }
     }
 }

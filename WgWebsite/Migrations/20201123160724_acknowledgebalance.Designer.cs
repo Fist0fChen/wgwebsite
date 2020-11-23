@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WgWebsite.Data;
 
 namespace WgWebsite.Migrations
 {
     [DbContext(typeof(KarmaDataContext))]
-    partial class KarmaDataContextModelSnapshot : ModelSnapshot
+    [Migration("20201123160724_acknowledgebalance")]
+    partial class acknowledgebalance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -99,7 +101,7 @@ namespace WgWebsite.Migrations
                     b.Property<long>("Karma")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("KarmaBalanceId")
+                    b.Property<long?>("KarmaBalanceId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("UserId")
@@ -254,11 +256,9 @@ namespace WgWebsite.Migrations
 
             modelBuilder.Entity("WgWebsite.Model.KarmaBalanceEntry", b =>
                 {
-                    b.HasOne("WgWebsite.Model.KarmaBalance", "KarmaBalance")
+                    b.HasOne("WgWebsite.Model.KarmaBalance", null)
                         .WithMany("Entries")
-                        .HasForeignKey("KarmaBalanceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("KarmaBalanceId");
 
                     b.HasOne("WgWebsite.Model.User", "User")
                         .WithMany()
@@ -274,7 +274,7 @@ namespace WgWebsite.Migrations
                         .HasForeignKey("KarmaTaskId");
 
                     b.HasOne("WgWebsite.Model.User", "User")
-                        .WithMany("Entries")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

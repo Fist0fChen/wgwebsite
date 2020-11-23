@@ -94,13 +94,14 @@
 
                 <div style="height: 10px; width:10px;"></div>
 
+                <div class="btn-group" role="group" id="category-selector"></div>
+                <div style="height: 10px; width:10px;"></div>
                 <div class="input-group mb-3">
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="basic-addon4">@trans.WordFor("Categories")</span>
                     </div>
-                    <input id="category-input" type="text" class="form-control" placeholder="@trans.WordFor("Categories")" @bind="NewTask.Categories" aria-label="Categories" aria-describedby="basic-addon4">
+                    <textarea id="category-input" type="text" class="form-control" placeholder="@trans.WordFor("Categories")" @bind="NewTask.Categories" aria-label="Categories" aria-describedby="basic-addon4"></textarea>
                 </div>
-                <div class="btn-group" role="group" id="category-selector"></div>
 
                 <div style="height: 10px; width:10px;"></div>
 

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+
 using WgWebsite.Model;
 
 namespace WgWebsite.Data
@@ -11,6 +13,14 @@ namespace WgWebsite.Data
         public DataBaseService()
         {
             context = new KarmaDataContext();
+            if(context.KarmaBalances.ToList().Count == 0)
+            {
+                context.KarmaBalances.Add(new KarmaBalance
+                {
+                    Acknowledged = true,
+                    BalanceTo = DateTime.Now
+                });
+            }
         }
         public User GetUserById(long userid)
         {
@@ -89,7 +99,7 @@ namespace WgWebsite.Data
             }
             return allfound;
         }
-        public void EditKarmaTask(KarmaTask task)
+        public void EditKarmaTask(KarmaTask task, bool save = true)
         {
             if (task.Description == null) task.Description = "";
             
@@ -101,7 +111,52 @@ namespace WgWebsite.Data
             {
                 context.Tasks.Add(task);
             }
+            if(save)
+                context.SaveChangesAsync();
+        }
+        public void EditKarmaTasks(IEnumerable<KarmaTask> tasks)
+        {
+            foreach (var t in tasks) EditKarmaTask(t, false);
             context.SaveChangesAsync();
+        }
+        public bool DoKarma(KarmaEntry entry)
+        {
+            if(entry.Comment == null || entry.Karma < 0 || entry.UserId < 0 ) return false;
+            try
+            {
+                entry.Timestamp = DateTime.Now;
+                context.TasksDone.Add(entry);
+                context.SaveChanges();
+                return true;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+        }
+        public bool DeleteKarmaEntry(long entryid)
+        {
+            try
+            {
+                context.TasksDone.Remove(context.TasksDone.FirstOrDefault(e => e.KarmaEntryId == entryid));
+                context.SaveChanges();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+        public IEnumerable<User> GetKarmaStats()
+        {
+            var currentPeriod = new DateTime(0);
+            foreach(var balance in context.KarmaBalances.ToArray())
+            {
+                if (balance.BalanceTo != null && balance.BalanceTo > currentPeriod)
+                    currentPeriod = balance.BalanceTo;
+            }
+            var users = context.Users.Include(u => u.Entries);
+            return users;
         }
     }
 }

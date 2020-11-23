@@ -1,0 +1,36 @@
+﻿@page "/activatetasks"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+@using System.Linq
+
+@code {
+    private void SendTasks(IEnumerable<Model.KarmaTask> tasks)
+    {
+        db.EditKarmaTasks(tasks);
+        JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-activate", trans.WordFor("Done"));
+    }
+}
+<AuthorizeView>
+    <Authorized>
+        @{
+            var tasks = db.GetKarmaTasks().ToList();
+        }
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+        {
+            <div class="card">
+                <div class="card-header"><h5>@trans.WordFor("Enable or Disable Tasks")</h5></div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        @for (var k = 0; k < tasks.Count; k++)
+                        {
+                            var id = k;
+                            <li class="list-group-item"><label onclick="$('#box-@(tasks[id].KarmaTaskId)').click()">@tasks[k].Name</label><input style="float: right;" id="box-@(tasks[id].KarmaTaskId)" type="checkbox" @bind="tasks[id].Active" /></li>
+                        }
+                    </ul>
+                    <div id="send-activate" class="btn btn-primary w-100" @onclick=@(e => SendTasks(tasks))>@trans.WordFor("Send")</div>
+                </div>
+            </div>
+        }
+    </Authorized>
+</AuthorizeView>

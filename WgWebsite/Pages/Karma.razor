@@ -1,14 +1,45 @@
 ﻿@page "/karma"
 @inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
 @using System.Linq;
+@using Newtonsoft.Json; 
+
 @code {
 
+    private void DoTask(long taskid, long userid, int karma)
+    {
+        var entry = new Model.KarmaEntry {
+            UserId = userid,
+            KarmaTaskId = taskid,
+            Karma = karma,
+            Comment = ""
+        };
+        if (db.DoKarma(entry))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Done"), ".");
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "task-" + taskid, trans.WordFor("Fail"), ".");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("assignSearchKarma");
+            StateHasChanged();
+        }
+    }
 }
 
 <AuthorizeView>
     <Authorized>
         @{
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
+            
             var tasks = db.GetKarmaTasks();
             var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
             foreach (var t in tasks)
@@ -28,50 +59,69 @@
                 }
             }
         }
-        <div id="accordion">
-            @foreach (var category in categories)
-            {
-                <div class="card">
-                    <div class="card-header" style="cursor:pointer" id="@(category.Key)h1">
-                        <h5 class="mb-0" onclick="$('.l1body').not('#@(category.Key)l1').slideUp(); if ($('#@(category.Key)l1').css('display') == 'none') $('#@(category.Key)l1').slideDown(); else $('#@(category.Key)l1').slideUp()">
-                            @category.Key
-                        </h5>
-                    </div>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+        {
+            <div class="card" style="margin-bottom:10px;">
+                <div style="cursor:pointer" class="card-header"><h5 onclick="$('#options-body').slideToggle()">@trans.WordFor("Options")</h5></div>
+                <div class="card-body" id="options-body" style="display:none;">
+                    <a class="btn btn-secondary" role="button" type="button" href="/editkarma">@trans.WordFor("New Task")</a>
+                    <a class="btn btn-secondary" role="button" type="button" href="/activatetasks">@trans.WordFor("Reactivate Tasks")</a>
+                    <a class="btn btn-secondary" role="button" type="button" href="/karmahistory">@trans.WordFor("Karma History")</a>
+                </div>
+            </div>
 
-                    <div id="@(category.Key)l1" class="l1body" style="display:none;" data-parent="#accordion">
-                        <div class="card-body">
-                            @foreach (var subcat in category.Value)
-                            {
-                                <div class="card">
-                                    <div class="card-header" style="cursor:pointer" id="@(subcat.Key)h2">
-                                        <h6 class="mb-0" onclick="$('.l2body').not('#@(subcat.Key)l2').slideUp(); if ($('#@(subcat.Key)l2').css('display') == 'none') $('#@(subcat.Key)l2').slideDown(); else $('#@(subcat.Key)l2').slideUp()">
-                                            @subcat.Key
-                                        </h6>
+            <div class="card">
+                <div class="card-header">
+                    <h5><input class="form-control" type="text" id="karma-search-input" placeholder="@trans.WordFor("Search Karma Tasks")"/></h5>
+                </div>
+                <div id="searchresults" data="@JsonConvert.SerializeObject(tasks.Where(t => t.Active))" class="card-body" style="display:none;"></div>
+            </div>
+
+            <div id="accordion">
+                @foreach (var category in categories)
+                {
+                    <div class="card">
+                        <div class="card-header" style="cursor:pointer" id="@(category.Key)h1">
+                            <h5 class="mb-0" onclick="$('.l1body').not('#@(category.Key)l1').slideUp(); if ($('#@(category.Key)l1').css('display') == 'none') $('#@(category.Key)l1').slideDown(); else $('#@(category.Key)l1').slideUp()">
+                                @category.Key
+                            </h5>
+                        </div>
+
+                        <div id="@(category.Key)l1" class="l1body" style="display:none;" data-parent="#accordion">
+                            <div class="card-body">
+                                @foreach (var subcat in category.Value)
+                                {
+                                    <div class="card">
+                                        <div class="card-header" style="cursor:pointer" id="@(subcat.Key)h2">
+                                            <h6 class="mb-0" onclick="$('.l2body').not('#@(subcat.Key)l2').slideUp(); if ($('#@(subcat.Key)l2').css('display') == 'none') $('#@(subcat.Key)l2').slideDown(); else $('#@(subcat.Key)l2').slideUp()">
+                                                @subcat.Key
+                                            </h6>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div id="@(subcat.Key)l2" class="l2body" style="display:none;" data-parent="#accordion">
-                                    <div class="card-body">
-                                        @foreach (var t in subcat.Value)
-                                        {
-                                            @if (t.Active)
+                                    <div id="@(subcat.Key)l2" class="l2body" style="display:none;" data-parent="#accordion">
+                                        <div class="card-body">
+                                            @foreach (var t in subcat.Value)
                                             {
-                                                <div style="margin: 5px;" class="btn-group mr-2">
-                                                    <button type="button" class="btn btn-primary">@t.Name</button>
-                                                    <a href="/editkarma?id=@t.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
-                                                        <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
-                                                    </a>
-                                                </div>
+                                                @if (t.Active)
+                                                {
+                                                    <div style="margin: 5px;" class="btn-group mr-2">
+                                                        <button type="button" class="btn btn-primary task-@(t.KarmaTaskId)" @onclick=@(e => DoTask(t.KarmaTaskId, thisuser.UserId, t.Karma))>@t.Name</button>
+                                                        <a href="/editkarma?id=@t.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
+                                                            <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
+                                                        </a>
+                                                    </div>
+                                                }
                                             }
-                                        }
+                                        </div>
                                     </div>
-                                </div>
-                            }
+                                }
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
     </Authorized>
     <NotAuthorized>
 
