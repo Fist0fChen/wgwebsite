@@ -1,0 +1,79 @@
+﻿@page "/karma"
+@inject Data.DataBaseService db
+@using System.Linq;
+@code {
+
+}
+
+<AuthorizeView>
+    <Authorized>
+        @{
+            var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
+            var tasks = db.GetKarmaTasks();
+            var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
+            foreach (var t in tasks)
+            {
+                if (!t.Active) continue;
+                var taskcats = t.Categories.Split(" ");
+                foreach (var cat in taskcats)
+                {
+                    if (!cat.Contains(".")) continue;
+                    var lvl1 = cat.Split(".")[0];
+                    var lvl2 = cat.Split(".")[1];
+                    if (!categories.Keys.Contains(lvl1))
+                        categories.Add(lvl1, new Dictionary<string, List<Model.KarmaTask>>());
+                    if (!categories[lvl1].Keys.Contains(lvl2))
+                        categories[lvl1].Add(lvl2, new List<Model.KarmaTask>());
+                    categories[lvl1][lvl2].Add(t);
+                }
+            }
+        }
+        <div id="accordion">
+            @foreach (var category in categories)
+            {
+                <div class="card">
+                    <div class="card-header" style="cursor:pointer" id="@(category.Key)h1">
+                        <h5 class="mb-0" onclick="$('.l1body').not('#@(category.Key)l1').slideUp(); if ($('#@(category.Key)l1').css('display') == 'none') $('#@(category.Key)l1').slideDown(); else $('#@(category.Key)l1').slideUp()">
+                            @category.Key
+                        </h5>
+                    </div>
+
+                    <div id="@(category.Key)l1" class="l1body" style="display:none;" data-parent="#accordion">
+                        <div class="card-body">
+                            @foreach (var subcat in category.Value)
+                            {
+                                <div class="card">
+                                    <div class="card-header" style="cursor:pointer" id="@(subcat.Key)h2">
+                                        <h6 class="mb-0" onclick="$('.l2body').not('#@(subcat.Key)l2').slideUp(); if ($('#@(subcat.Key)l2').css('display') == 'none') $('#@(subcat.Key)l2').slideDown(); else $('#@(subcat.Key)l2').slideUp()">
+                                            @subcat.Key
+                                        </h6>
+                                    </div>
+                                </div>
+
+                                <div id="@(subcat.Key)l2" class="l2body" style="display:none;" data-parent="#accordion">
+                                    <div class="card-body">
+                                        @foreach (var t in subcat.Value)
+                                        {
+                                            @if (t.Active)
+                                            {
+                                                <div style="margin: 5px;" class="btn-group mr-2">
+                                                    <button type="button" class="btn btn-primary">@t.Name</button>
+                                                    <a href="/editkarma?id=@t.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
+                                                        <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
+                                                    </a>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+
+    </NotAuthorized>
+</AuthorizeView>

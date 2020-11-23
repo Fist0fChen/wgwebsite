@@ -51,6 +51,10 @@ namespace WgWebsite.Data
             }
             return users;
         }
+        public IEnumerable<KarmaTask> GetKarmaTasks()
+        {
+            return context.Tasks.ToList();
+        }
         public bool ChangeUserRoles(IEnumerable<User> users)
         {
             bool foundall = true;
@@ -84,6 +88,20 @@ namespace WgWebsite.Data
                 context.SaveChangesAsync();
             }
             return allfound;
+        }
+        public void EditKarmaTask(KarmaTask task)
+        {
+            if (task.Description == null) task.Description = "";
+            
+            if(context.Tasks.Any(t => t.KarmaTaskId == task.KarmaTaskId))
+            {
+                context.Tasks.Update(task);
+            }
+            else
+            {
+                context.Tasks.Add(task);
+            }
+            context.SaveChangesAsync();
         }
     }
 }

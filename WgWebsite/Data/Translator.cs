@@ -14,6 +14,10 @@ namespace WgWebsite.Data
         {
             return new[] { "Deutsch", "English", "Italiano" };
         }
+        public void SetLanguage(string lang)
+        {
+
+        }
         public static string German => "Deutsch";
         public static string English => "English";
         public static string Italian => "Italiano";

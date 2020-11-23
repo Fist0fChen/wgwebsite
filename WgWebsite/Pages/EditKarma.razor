@@ -1,0 +1,111 @@
+﻿@page "/editkarma"
+@using Microsoft.JSInterop
+@using Model
+@inject IJSRuntime JSRuntime
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+
+@code {
+        int taskid;
+        KarmaTask NewTask;
+    protected override void OnInitialized()
+    {
+        NewTask = new KarmaTask();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var tempid = await JSRuntime.InvokeAsync<string>("getparamval", "id");
+            if (!int.TryParse(tempid, out taskid)) taskid = 0;
+            StateHasChanged();
+        }
+    }
+    private void SendKarmaTask()
+    {
+        if (NewTask.Categories != null && NewTask.Karma > 0 && NewTask.Name != null && NewTask.Name.Length > 0 && NewTask.Categories.Length > 0)
+        {
+            db.EditKarmaTask(NewTask);
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "apply-button", trans.WordFor("Done"));
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "apply-button", trans.WordFor("Failed"));
+        }
+    }
+}
+
+<AuthorizeView>
+    <Authorized>
+        @{
+            var categories = new Dictionary<string, List<string>>();
+            var karmatasks = db.GetKarmaTasks();
+            foreach(var task in karmatasks)
+            {
+                if (task.KarmaTaskId == taskid) NewTask = task;
+                var cats = task.Categories.Split(' ');
+                foreach(var cat in cats)
+                {
+                    if (!cat.Contains(".")) continue;
+                    if (!categories.Keys.Contains(cat.Split(".")[0]))
+                        categories.Add(cat.Split(".")[0], new List<string>());
+                    if (!categories[cat.Split(".")[0]].Contains(cat.Split(".")[1]))
+                        categories[cat.Split(".")[0]].Add(cat.Split(".")[1]);
+                }
+            }
+            JSRuntime.InvokeVoidAsync("showCategories", "category-selector", "category-input", categories);
+            if(taskid <= 0) NewTask.Active = true;
+        }
+        <div class="card h-100">
+            <h5 class="card-header">@(taskid==0?trans.WordFor("Create New Karma Task") : trans.WordFor("Edit Karma Task"))</h5>
+            <div class="card-body">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="basic-addon1">@trans.WordFor("Name")</span>
+                    </div>
+                    <input type="text" class="form-control" placeholder="@trans.WordFor("Name")" @bind="NewTask.Name" aria-label="Name" aria-describedby="basic-addon1">
+                </div>
+
+                <div style="height: 10px; width:10px;"></div>
+
+                <div>
+                    <label onclick="$('#active-checkbox').click()">@trans.WordFor("Activated")</label>
+                    <input id="active-checkbox" type="checkbox" data-toggle="toggle" @bind="NewTask.Active">
+                </div>
+
+                <div style="height: 10px; width:10px;"></div>
+
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="basic-addon2">@trans.WordFor("Karma")</span>
+                    </div>
+                    <input type="number" class="form-control" placeholder="@trans.WordFor("Karma")" @bind="NewTask.Karma" aria-label="Karma" aria-describedby="basic-addon2">
+                </div>
+
+                <div style="height: 10px; width:10px;"></div>
+
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="basic-addon3">@trans.WordFor("Description")</span>
+                    </div>
+                    <input type="text" class="form-control" placeholder="@trans.WordFor("Description")" @bind="NewTask.Description" aria-label="Description" aria-describedby="basic-addon3">
+                </div>
+
+                <div style="height: 10px; width:10px;"></div>
+
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="basic-addon4">@trans.WordFor("Categories")</span>
+                    </div>
+                    <input id="category-input" type="text" class="form-control" placeholder="@trans.WordFor("Categories")" @bind="NewTask.Categories" aria-label="Categories" aria-describedby="basic-addon4">
+                </div>
+                <div class="btn-group" role="group" id="category-selector"></div>
+
+                <div style="height: 10px; width:10px;"></div>
+
+                <button id="apply-button" class="btn btn-primary" @onclick="SendKarmaTask">@trans.WordFor("Apply")</button>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
