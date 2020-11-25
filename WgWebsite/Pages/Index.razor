@@ -16,6 +16,7 @@
         {"changePermissions", "collapse"},
         {"changeLang", "collapse"},
         {"changePic", "collapse"},
+        {"changePw", "collapse" }
     };
     List<string> currentRoles;
     private Dictionary<long, Dictionary<string, bool>> roles;
@@ -33,6 +34,8 @@
         }
     }
     private User NewUser = new User();
+    private string newPassword = "";
+    private string newPasswordRepeat = "";
     private string password = "";
     private string passwordRepeat = "";
     private SHA256 mySHA256 = SHA256.Create();
@@ -46,6 +49,17 @@
         {
             roles.Add(u.UserId, new Dictionary<string, bool>());
             foreach (var r in Roles.getAll()) roles[u.UserId].Add(r, u.Role.Contains(r));
+        }
+    }
+    private void SendChangePw(long userid)
+    {
+        if (newPassword.Length > 0 && newPassword == newPasswordRepeat && db.EditUser(new User { UserId = userid, PassHash = mySHA256.ComputeHash(Encoding.ASCII.GetBytes(newPassword)) }, "PassHash"))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-change-pw", trans.WordFor("Done"));
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-change-pw", trans.WordFor("Failed"));
         }
     }
     private void SendNewUser()
@@ -63,7 +77,7 @@
                 }
             }
         }
-        JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-new-user", trans.WordFor("Done"));
+        JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-new-user", trans.WordFor("Failed"));
     }
     private void SendLanguage(string l, long userid)
     {
@@ -92,10 +106,6 @@
     {
         roles[id][ro] = !roles[id][ro];
     }
-    private void setlang(string l)
-    {
-        newLanguage = l;
-    }
 }
 
 <AuthorizeView>
@@ -123,6 +133,49 @@
             </div>
         </div>
         <div style="height: 30px;">&nbsp;</div>
+        <div class="card-deck" style="margin-bottom:10px;">
+            <div class="card h-100">
+                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change Language")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change the language of this site")</div>
+                <div class="card-body @CollapseValues["changeLang"]">
+                    <div class="form-check">
+                        @foreach (var lang in trans.Languages())
+                        {
+                            var curlan = lang;
+                            if (thisuser.Language != null && thisuser.Language == lang)
+                            {
+                                <input type="radio" @onclick=@(e => db.EditUser(new User {UserId=thisuser.UserId, Language=curlan }, "Language")) class="form-check-input" id="@lang" name="language-radios" checked>
+                            }
+                            else
+                            {
+                                <input type="radio" @onclick=@(e =>  db.EditUser(new User {UserId=thisuser.UserId, Language=curlan }, "Language")) class="form-check-input" id="@lang" name="language-radios">
+                            }
+                            <label class="form-check-label" for="languages" onclick="document.getElementById('@lang').click()">@lang</label>
+                            <br />
+                        }
+                    </div>
+                    <button style="margin-top: 20px;" class="btn btn-primary w-100" onclick="document.location.reload()">@trans.WordFor("Reload")</button>
+                </div>
+            </div>
+            <div class="card h-100">
+                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Change Picture")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Add or change your profile picture")</div>
+                <div class="card-body @CollapseValues["changePic"]">
+                    TODO: upload field
+                </div>
+            </div>
+            <div class="card h-100">
+                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePw"))>@trans.WordFor("Change Password")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Change your password")</div>
+                <div class="card-body @CollapseValues["changePw"]">
+                    <input class="form-control" placeholder=@trans.WordFor("Password") type="password" @bind="newPassword" />
+                    <div style="height: 10px; width:10px;"></div>
+                    <input class="form-control" placeholder=@trans.WordFor("Repeat") type="password" @bind="newPasswordRepeat" />
+                    <div style="height: 10px; width:10px;"></div>
+                    <button id="send-change-pw" value=@trans.WordFor("Send") class="btn btn-primary w-100" @onclick=@(e => SendChangePw(thisuser.UserId))>@trans.WordFor("Send")</button>
+                </div>
+            </div>
+        </div>
         <div class="card-deck">
             @if (context.User.Claims.Any(c => c.Value == Roles.Karma))
             {
@@ -168,36 +221,6 @@
                 </div>
             }
 
-            <div class="card h-100">
-                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change Language")</h5>
-                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change the language of this site")</div>
-                <div class="card-body @CollapseValues["changeLang"]">
-                    <div class="form-check">
-                        @foreach (var lang in trans.Languages())
-                        {
-                            var curlan = lang;
-                            if (thisuser.Language != null && thisuser.Language == lang)
-                            {
-                                <input type="radio" @onclick=@(e => db.EditUser(new User {UserId=thisuser.UserId, Language=curlan }, "Language")) class="form-check-input" id="@lang" name="language-radios" checked>
-                            }
-                            else
-                            {
-                                <input type="radio" @onclick=@(e =>  db.EditUser(new User {UserId=thisuser.UserId, Language=curlan }, "Language")) class="form-check-input" id="@lang" name="language-radios">
-                            }
-                            <label class="form-check-label" for="languages" onclick="document.getElementById('@lang').click()">@lang</label>
-                            <br />
-                        }
-                    </div>
-                    <button style="margin-top: 20px;" class="btn btn-primary w-100" onclick="document.location.reload()">@trans.WordFor("Reload")</button>
-                </div>
-            </div>
-            <div class="card h-100">
-                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Change Picture")</h5>
-                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Add or change your profile picture")</div>
-                <div class="card-body @CollapseValues["changePic"]">
-                    TODO: upload field
-                </div>
-            </div>
         </div>
     </Authorized>
 </AuthorizeView>

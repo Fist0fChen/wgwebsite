@@ -1,0 +1,41 @@
+﻿@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+
+@code {
+    [Parameter]
+    public Model.KarmaTask Task { get; set; }
+    [Parameter]
+    public long UserId { get; set; }
+    [Parameter]
+    public string ElementId { get; set; }
+    [Parameter]
+    public string ClassTag { get; set; }
+
+    private void DoTask(long taskid, long userid, int karma)
+    {
+        var entry = new Model.KarmaEntry
+        {
+            UserId = userid,
+            KarmaTaskId = taskid,
+            Karma = karma,
+            Comment = ""
+        };
+        if (db.DoKarma(entry))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Done"), ".");
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "task-" + taskid, trans.WordFor("Fail"), ".");
+        }
+    }
+}
+
+<div id="@ElementId" style="margin: 5px;" class="btn-group mr-2 @ClassTag" name="@Task.Name">
+    <button type="button" class="btn btn-primary task-@(Task.KarmaTaskId)" @onclick=@(e => DoTask(Task.KarmaTaskId, UserId, Task.Karma))>@Task.Name</button>
+    <button class="btn btn-success" @onclick=@(e => DoTask(Task.KarmaTaskId, UserId, Task.Karma))>@Task.Karma</button>
+    <a href="/editkarma?id=@Task.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
+        <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
+    </a>
+</div>

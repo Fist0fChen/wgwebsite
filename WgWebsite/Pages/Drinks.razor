@@ -1,0 +1,56 @@
+﻿@page "/drinks"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+@using System.Linq
+@code {
+    private void EnterDrink(long userid, long drinkid)
+    {
+        if (db.EnterDrink(userid, drinkid))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "enterdrink-" + drinkid, trans.WordFor("Done"));
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "enterdrink-" + drinkid, trans.WordFor("Failed"));
+        }
+    }
+}
+
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Drinks))
+        {
+            var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
+            var drinks = db.GetDrinks().ToList();
+            trans.SetLanguage(thisuser.Language);
+            <div class="card" style="margin-bottom:10px;">
+                <h5 style="cursor:pointer" onclick="$('#options-body').slideToggle()" class="card-header">@trans.WordFor("Options")</h5>
+                <div id="options-body" style="display:none;" class="card-body">
+                    @if (context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin))
+                    {
+                        <a class="btn btn-secondary" style="margin: 5px;" href="/editdrinks">@trans.WordFor("Edit Drinks")</a>
+                    }
+                    <a class="btn btn-secondary" style="margin: 5px;" href="/drinkentries">@trans.WordFor("Entered Drinks")</a>
+                </div>
+            </div>
+            <div class="card">
+                <h5 class="card-header">@trans.WordFor("Drinks")</h5>
+                <div class="card-body">
+                    @for (var k = 0; k < drinks.Count; k++)
+                    {
+                        if (!drinks[k].Active) continue;
+                        var idx = k;
+                        <div style="margin: 5px;" class="btn-group mr-2">
+                            <button id="enterdrink-@drinks[idx].DrinkId" class="btn btn-primary" @onclick=@(e => EnterDrink(thisuser.UserId, drinks[idx].DrinkId))>@drinks[idx].Name</button>
+                            <button class="btn btn-success" @onclick=@(e => EnterDrink(thisuser.UserId, drinks[idx].DrinkId))>@(((float)drinks[idx].Price)/100) €</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <LoginControl></LoginControl>
+    </NotAuthorized>
+</AuthorizeView>

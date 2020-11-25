@@ -12,6 +12,7 @@ namespace WgWebsite.Model
         public string Theme { get; set; }
         public string Notifications { get; set; }
         public string Language { get; set; }
-        public IEnumerable<KarmaEntry> Entries { get; set; }
+        public IEnumerable<KarmaEntry> KarmaEntries { get; set; }
+        public IEnumerable<DrinkPurchase> DrinkPurchases { get; set; }
     }
 }

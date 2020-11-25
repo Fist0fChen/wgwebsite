@@ -1,0 +1,82 @@
+﻿@page  "/editdrinks"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+@code {
+    private Model.Drink newdrink = new Model.Drink() { Active = true };
+    private void SendDrink()
+    {
+        if (db.AddDrink(newdrink))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-new-drink", trans.WordFor("Done"));
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-new-drink", trans.WordFor("Fail"));
+        }
+    }
+    private void SendDrinksActive(IEnumerable<Model.Drink> drinks)
+    {
+        if (db.ActivateDrinks(drinks))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-drinks-active", trans.WordFor("Done"));
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-drinks-active", trans.WordFor("Fail"));
+        }
+    }
+}
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin))
+        {
+            <div class="card" style="margin-bottom: 10px;">
+                <h5 class="card-header">@trans.WordFor("Add Product")</h5>
+                <div class="card-body">
+                    <div class="input-group mb-3" style="margin-bottom: 10px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="basic-addon1">@trans.WordFor("Name")</span>
+                        </div>
+                        <input type="text" class="form-control w-100" placeholder="Name" @bind="newdrink.Name" />
+                    </div>
+                    <div class="input-group mb-3" style="margin-bottom: 10px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="basic-addon1">@trans.WordFor("Price") [ct.]</span>
+                        </div>
+                        <input type="number" class="form-control w-100" placeholder="Price [ct.]" @bind="newdrink.Price" />
+                    </div>
+                    <button id="send-new-drink" class="btn btn-primary w-100" @onclick="SendDrink">@trans.WordFor("Send")</button>
+                </div>
+            </div>
+
+            var drinks = db.GetDrinks().ToList();
+            <div class="card">
+                <h5 class="card-header">@trans.WordFor("De/activate Drinks")</h5>
+                <div class="card-body">
+                    <table class="table" style="margin-bottom: 10px">
+                        <thead>
+                            <tr>
+                                <th>@trans.WordFor("Name")</th>
+                                <th>@trans.WordFor("Price")</th>
+                                <th>@trans.WordFor("Activated")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var k = 0; k < drinks.Count; k++)
+                            {
+                                var id = k;
+                                <tr>
+                                    <td onclick="$('#drink-active@(drinks[k].DrinkId)').click()">@drinks[k].Name</td>
+                                    <td onclick="$('#drink-active@(drinks[k].DrinkId)').click()">@(((float)drinks[k].Price)/100) €</td>
+                                    <td><input id="drink-active-@drinks[k].DrinkId" type="checkbox" @bind="drinks[k].Active" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <button class="btn btn-primary" id="send-drinks-active" @onclick=@(e => SendDrinksActive(drinks))>@trans.WordFor("Send")</button>
+                </div>
+            </div>
+        }
+    </Authorized>
+</AuthorizeView>

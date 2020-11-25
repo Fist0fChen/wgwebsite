@@ -3,28 +3,9 @@
 @inject Data.Translator trans
 @inject IJSRuntime JSRuntime
 @using System.Linq;
-@using Newtonsoft.Json; 
+
 
 @code {
-
-    private void DoTask(long taskid, long userid, int karma)
-    {
-        var entry = new Model.KarmaEntry {
-            UserId = userid,
-            KarmaTaskId = taskid,
-            Karma = karma,
-            Comment = ""
-        };
-        if (db.DoKarma(entry))
-        {
-            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Done"), ".");
-        }
-        else
-        {
-            JSRuntime.InvokeVoidAsync("highlightButtonFail", "task-" + taskid, trans.WordFor("Fail"), ".");
-        }
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -39,7 +20,8 @@
     <Authorized>
         @{
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
-            
+
+            trans.SetLanguage(thisuser.Language);
             var tasks = db.GetKarmaTasks();
             var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
             foreach (var t in tasks)
@@ -64,20 +46,35 @@
             <div class="card" style="margin-bottom:10px;">
                 <div style="cursor:pointer" class="card-header"><h5 onclick="$('#options-body').slideToggle()">@trans.WordFor("Options")</h5></div>
                 <div class="card-body" id="options-body" style="display:none;">
-                    <a class="btn btn-secondary" role="button" type="button" href="/editkarma">@trans.WordFor("New Task")</a>
-                    <a class="btn btn-secondary" role="button" type="button" href="/activatetasks">@trans.WordFor("Reactivate Tasks")</a>
-                    <a class="btn btn-secondary" role="button" type="button" href="/karmahistory">@trans.WordFor("Karma History")</a>
+                    <a class="btn btn-secondary" style="margin: 5px;" role="button" type="button" href="/editkarma">@trans.WordFor("New Task")</a>
+                    <a class="btn btn-secondary" style="margin: 5px;" role="button" type="button" href="/activatetasks">@trans.WordFor("De/activate Tasks")</a>
+                    <a class="btn btn-secondary" style="margin: 5px;" role="button" type="button" href="/karmahistory">@trans.WordFor("Karma History")</a>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
-                    <h5><input class="form-control" type="text" id="karma-search-input" placeholder="@trans.WordFor("Search Karma Tasks")"/></h5>
+                    <h5><input class="form-control" type="text" id="karma-search-input" placeholder="@trans.WordFor("Search Karma Tasks")" /></h5>
                 </div>
-                <div id="searchresults" data="@JsonConvert.SerializeObject(tasks.Where(t => t.Active))" class="card-body" style="display:none;"></div>
+                <div id="searchresults" class="card-body collapse">
+                    @foreach (var t in tasks)
+                    {
+                        if (!t.Active) continue;
+                        <KarmaTaskView ClassTag="searchresult" UserId="@thisuser.UserId" Task="@t" ElementId=@("search-" + t.KarmaTaskId)></KarmaTaskView>
+                    }
+                </div>
             </div>
 
             <div id="accordion">
+                @if (tasks.Any(t => t.Highlighted != null))
+                {
+                    <div class="card">
+                        <h5 class="card-header">@trans.WordFor("Urgent")</h5>
+                        <div class="l1body card-body" style="display:none;" data-parent="#accordion">
+                            <!--TODO: add highlighted tasks-->
+                        </div>
+                    </div>
+                }
                 @foreach (var category in categories)
                 {
                     <div class="card">
@@ -103,15 +100,8 @@
                                         <div class="card-body">
                                             @foreach (var t in subcat.Value)
                                             {
-                                                @if (t.Active)
-                                                {
-                                                    <div style="margin: 5px;" class="btn-group mr-2">
-                                                        <button type="button" class="btn btn-primary task-@(t.KarmaTaskId)" @onclick=@(e => DoTask(t.KarmaTaskId, thisuser.UserId, t.Karma))>@t.Name</button>
-                                                        <a href="/editkarma?id=@t.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
-                                                            <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
-                                                        </a>
-                                                    </div>
-                                                }
+                                                @if (!t.Active) continue;
+                                                <KarmaTaskView Task="t" UserId="thisuser.UserId" ElementId=""></KarmaTaskView>
                                             }
                                         </div>
                                     </div>

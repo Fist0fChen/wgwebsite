@@ -27,38 +27,58 @@
         {
             var tasks = db.GetKarmaTasks();
             var karmadata = db.GetKarmaStats();
-            foreach (var user in karmadata)
+            var sortedkarma  = karmadata.OrderBy(u => u.UserId == thisuser.UserId ? 0 : 1);
+            foreach (var user in sortedkarma)
             {
-                <div class="card">
-                    <div class="card-header" style="font-weight: bold; font-size: 20px;">
-                        <div style="float: left;">@user.Name</div><div style="float: right">@trans.WordFor("Total Karma") @user.Entries.Aggregate(0, (e1, e2) => e1 + e2.Karma)</div>
+                <div class="card" style="margin-bottom:10px;">
+                    <div class="card-header" style="font-weight: bold; font-size: 20px; cursor:pointer;" onclick="$('.karma-body').not('karma-body-@user.UserId').slideUp(); $('karma-body-@user.UserId').slideToggle();">
+                        <div style="float: left;">@user.Name</div>
+                        <div style="float: right">@trans.WordFor("Total Karma") @user.KarmaEntries.Aggregate(0, (e1, e2) => e1 + e2.Karma)</div>
                     </div>
 
-                    <div class="card-body">
+                    <div class="card-body karma-body" id="karma-body-@user.UserId">
                         <table class="table">
                             <thead>
                                 <tr>
+                                    @if (thisuser.UserId == user.UserId)
+                                    {
+                                        <th>@trans.WordFor("Delete")</th>
+                                    }
                                     <th>@trans.WordFor("Task")</th>
-                                    <th>@trans.WordFor("Date")</th>
+                                    <th class="d-none d-md-table-cell">@trans.WordFor("Date")</th>
                                     <th>@trans.WordFor("Karma")</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var entry in user.Entries)
+                                @foreach (var entry in user.KarmaEntries)
                                 {
                                     var entryid = entry.KarmaEntryId;
-                                <tr>
-                                    <td>@tasks.FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId).Name
+                                    var task = @tasks.FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId);
+                                    var displayname = "";
+                                    if (task == null)
+                                    {
+                                        if (entry.Comment != null && entry.Comment.Length > 0) displayname = entry.Comment;
+                                        else displayname = trans.WordFor("Unknown Task");
+                                    }
+                                    else displayname = task.Name;
+                                    <tr>
                                         @if (thisuser.UserId == user.UserId)
                                         {
-                                            <button id="@(entryid)-task" class="btn btn-danger" @onclick=@(e => DeleteEntry(entryid))>
-                                                <img style="width:20px" src="@Model.Themes.Icon("minus")" />
-                                            </button>
+                                            <td>
+
+                                                <button id="@(entryid)-task" class="btn btn-danger btn-sm" @onclick=@(e => DeleteEntry(entryid))>
+                                                    <img style="width:20px" src="@Model.Themes.Icon("minus")" />
+                                                </button>
+
+                                            </td>
                                         }
-                                    </td>
-                                    <td>@entry.Timestamp</td>
-                                    <td>@entry.Karma</td>
-                                </tr>
+                                        <td>
+                                            <span onclick="$('#date-@(entry.KarmaEntryId)').toggle()">@displayname</span>
+                                            <span style="display:none;" id="date-@(entry.KarmaEntryId)" class="d-md-none">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</span>
+                                        </td>
+                                        <td class="d-none d-md-table-cell">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</td>
+                                        <td>@entry.Karma</td>
+                                    </tr>
                                 }
                             </tbody>
                         </table>

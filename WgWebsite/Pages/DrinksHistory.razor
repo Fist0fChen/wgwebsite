@@ -1,0 +1,135 @@
+﻿@page "/drinkentries"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JS
+
+@code {
+    private Dictionary<long, int> numShowEntries;
+    private IEnumerable<Model.User> users;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        users = db.GetDrinkEntries();
+        numShowEntries = new Dictionary<long, int>();
+        foreach (var u in users)
+        {
+            numShowEntries.Add(u.UserId, 10);
+        }
+    }
+    private void showAll(long userid)
+    {
+        numShowEntries[userid] = -1;
+    }
+    private void SendDeleteEntry(long entryid, long userid)
+    {
+        if (db.DeletePurchase(userid, entryid))
+            JS.InvokeVoidAsync("highlightButtonSuccess", "delete-" + entryid, trans.WordFor("Done"));
+        else
+            JS.InvokeVoidAsync("highlightButtonFail", "delete-" + entryid, trans.WordFor("Failed"));
+    }
+    private void SendRestoreEntry(long entryid, long userid)
+    {
+        if (db.RestorePurchase(userid, entryid))
+            JS.InvokeVoidAsync("highlightButtonSuccess", "restore-" + entryid, trans.WordFor("Done"));
+        else
+            JS.InvokeVoidAsync("highlightButtonFail", "restore-" + entryid, trans.WordFor("Failed"));
+    }
+}
+
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Drinks))
+        {
+            var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
+            var drinks = db.GetDrinks();
+            foreach (var u in users)
+            {
+                <div class="card" style="margin-bottom: 10px;">
+                    @{
+                        var debt = ((float)(u.DrinkPurchases.Aggregate((long)0, (a, b) => a + b.Cost)) / 100);
+                        var debtdisplay = trans.WordFor("Debt");
+                        if (debt < 0) debtdisplay = trans.WordFor("Credit");
+                    }
+                    <h5 class="card-header" onclick="$('.purchase-body').not('#purchase-body-@u.UserId').slideUp(); $('#purchase-body-@(u.UserId)').slideToggle();" style="cursor:pointer">
+                        <span style="float:left">@u.Name</span>
+                        <span style="float:right">@(debtdisplay): @debt €</span>
+                    </h5>
+                    <div class="card-body purchase-body" id="purchase-body-@u.UserId" style="display:none;">
+                        <table class="table">
+                            @{
+                                var extracolumn = context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin) || u.UserId == thisuser.UserId;
+                            }
+                            <thead>
+                                <tr>
+                                    @if (extracolumn)
+                                    {
+                                        <th>@trans.WordFor("Action")</th>
+                                    }
+                                    <th>@trans.WordFor("Name")</th>
+                                    <th class="d-none d-md-table-cell">@trans.WordFor("Date")</th>
+                                    <th>@trans.WordFor("Price")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ var counter = 0; }
+                                @foreach (var e in u.DrinkPurchases)
+                                {
+                                    if (numShowEntries[u.UserId] > 0)
+                                    {
+                                        if (counter >= numShowEntries[u.UserId]) break;
+                                        counter += 1;
+                                    }
+                                    var drink = drinks.FirstOrDefault(d => d.DrinkId == e.DrinkId);
+                                    var displayname = "";
+                                    if (drink == null)
+                                    {
+                                        if (e.Comment != null || e.Comment.Length > 0) displayname = e.Comment;
+                                        else displayname = trans.WordFor("Unknown Purchase");
+                                    }
+                                    else
+                                    {
+                                        displayname = drink.Name;
+                                    }
+                                    <tr>
+                                        @if (extracolumn)
+                                        {
+                                            <td>
+                                                @if (!e.Challenged)
+                                                {
+                                                    <button id="delete-@e.DrinkPurchaseId" class="btn btn-danger" @onclick=@(f => SendDeleteEntry(e.DrinkPurchaseId, u.UserId))>
+                                                        <img style="width:20px" src="@Model.Themes.Icon("minus")" />
+                                                    </button>
+                                                }
+                                                @if (e.Challenged)
+                                                {
+                                                    <button id="restore-@e.DrinkPurchaseId" class="btn btn-success" @onclick=@(f => SendRestoreEntry(e.DrinkPurchaseId, u.UserId))>
+                                                        <img style="width:20px" src="@Model.Themes.Icon("plus")" />
+                                                    </button>
+                                                }
+                                            </td>
+                                        }
+                                        <td>
+                                            <span onclick="$('#timestamp-@e.DrinkPurchaseId').toggle()">@displayname@(e.Challenged ? " [" + trans.WordFor("Cancellation Pending") + "]" : "")</span>
+                                            <span id="timestamp-@e.DrinkPurchaseId" class="d-md-none" style="display:none;">@e.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")</span>
+                                        </td>
+                                        <td class="d-none d-md-table-cell">@e.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")</td>
+                                        <td>@((float)e.Cost/100) €</td>
+                                    </tr>
+                                }
+                                @if (numShowEntries[u.UserId] > 0)
+                                {
+                                    <tr>
+                                        <td colspan="@(extracolumn ? 4 : 3)">
+                                            <button @onclick=@(e => showAll(u.UserId)) class="btn btn-primary">@trans.WordFor("ShowAll")</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+        }
+    </Authorized>
+</AuthorizeView>

@@ -21,11 +21,14 @@
             <div class="card">
                 <div class="card-header"><h5>@trans.WordFor("Enable or Disable Tasks")</h5></div>
                 <div class="card-body">
-                    <ul class="list-group">
+                    <ul class="list-group" style="margin-bottom:10px">
                         @for (var k = 0; k < tasks.Count; k++)
                         {
                             var id = k;
-                            <li class="list-group-item"><label onclick="$('#box-@(tasks[id].KarmaTaskId)').click()">@tasks[k].Name</label><input style="float: right;" id="box-@(tasks[id].KarmaTaskId)" type="checkbox" @bind="tasks[id].Active" /></li>
+                            <li class="list-group-item">
+                                <label onclick="$('#box-@(tasks[id].KarmaTaskId)').click()">@tasks[k].Name</label>
+                                <input style="float: right;" id="box-@(tasks[id].KarmaTaskId)" type="checkbox" @bind="tasks[id].Active" />
+                            </li>
                         }
                     </ul>
                     <div id="send-activate" class="btn btn-primary w-100" @onclick=@(e => SendTasks(tasks))>@trans.WordFor("Send")</div>
