@@ -24,10 +24,19 @@
         if (db.DoKarma(entry))
         {
             JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Done"), ".");
+            StateHasChanged();
         }
         else
         {
             JSRuntime.InvokeVoidAsync("highlightButtonFail", "task-" + taskid, trans.WordFor("Fail"), ".");
+        }
+    }
+    private void HighlightTask(long taskid)
+    {
+        if (db.HighlightTask(taskid))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Highlighted"), ".");
+            StateHasChanged();
         }
     }
 }
@@ -35,6 +44,12 @@
 <div id="@ElementId" style="margin: 5px;" class="btn-group mr-2 @ClassTag" name="@Task.Name">
     <button type="button" class="btn btn-primary task-@(Task.KarmaTaskId)" @onclick=@(e => DoTask(Task.KarmaTaskId, UserId, Task.Karma))>@Task.Name</button>
     <button class="btn btn-success" @onclick=@(e => DoTask(Task.KarmaTaskId, UserId, Task.Karma))>@Task.Karma</button>
+    @if (Task.Highlighted == null || Task.Highlighted < new DateTime(1))
+    {
+        <button class="btn btn-secondary" @onclick=@(e => HighlightTask(Task.KarmaTaskId))>
+            <img style="width:20px;" src="@Model.Themes.Icon("plus-circle")" />
+        </button>
+    }
     <a href="/editkarma?id=@Task.KarmaTaskId" role="button" type="button" class="btn btn-secondary">
         <img src="@Model.Themes.Icon("cog-wheel")" style="height:20px" />
     </a>

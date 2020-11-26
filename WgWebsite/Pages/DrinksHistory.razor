@@ -42,6 +42,69 @@
         {
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
             var drinks = db.GetDrinks();
+            var isAdmin = context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin || c.Value == Model.Roles.Admin);
+            var cancellationRequests = new List<Model.DrinkPurchase>();
+            foreach (var u in users)
+                foreach (var p in u.DrinkPurchases)
+                    if (p.Challenged) cancellationRequests.Add(p);
+
+            if (isAdmin && cancellationRequests.Count > 0)
+            {
+                <div class="card" style="margin-bottom: 10px;">
+                    <h5 class="card-header">@trans.WordFor("Cancellation Requests")</h5>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>@trans.WordFor("Action")</th>
+                                    <th>@trans.WordFor("User")</th>
+                                    <th>@trans.WordFor("Product")</th>
+                                    <th class="d-none d-md-table-cell">@trans.WordFor("Date")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var k = 0; k < cancellationRequests.Count; k++)
+                                {
+                                    var req = cancellationRequests[k];
+                                    <tr>
+                                        <td>
+                                            <button class="btn btn-success" @onclick=@(e => SendDeleteEntry(req.DrinkPurchaseId, thisuser.UserId))>
+                                                <img style="width:20px" src="@Model.Themes.Icon("check")" />
+                                            </button>
+                                            <button class="btn btn-danger" @onclick=@(e => SendRestoreEntry(req.DrinkPurchaseId, thisuser.UserId))>
+                                                <img style="width:20px" src="@Model.Themes.Icon("times")" />
+                                            </button>
+                                        </td>
+                                        <td>
+                                            @users.FirstOrDefault(u => u.UserId == req.UserId)?.Name
+                                        </td>
+                                        <td>
+                                            @{
+                                                var displayname = "";
+                                                var drink = @drinks.FirstOrDefault(d => d.DrinkId == req.DrinkId);
+                                                if (drink == null)
+                                                {
+                                                    if (req.Comment != null || req.Comment.Length > 0) displayname = req.Comment;
+                                                    else displayname = trans.WordFor("Unknown Purchase");
+                                                }
+                                                else
+                                                {
+                                                    displayname = drink.Name;
+                                                }
+                                            }
+                                            <span onclick="$('#cancel-@req.DrinkPurchaseId').toggle()">@displayname</span>
+                                            <span id="cancel-@req.DrinkPurchaseId" class="d-md-none" style="display:none;">@req.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")</span>
+                                        </td>
+                                        <td class="d-none d-md-table-cell">
+                                            @req.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
             foreach (var u in users)
             {
                 <div class="card" style="margin-bottom: 10px;">
@@ -57,7 +120,7 @@
                     <div class="card-body purchase-body" id="purchase-body-@u.UserId" style="display:none;">
                         <table class="table">
                             @{
-                                var extracolumn = context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin) || u.UserId == thisuser.UserId;
+                                var extracolumn = isAdmin || u.UserId == thisuser.UserId;
                             }
                             <thead>
                                 <tr>

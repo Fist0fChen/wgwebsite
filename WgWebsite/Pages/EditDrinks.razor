@@ -34,17 +34,17 @@
             <div class="card" style="margin-bottom: 10px;">
                 <h5 class="card-header">@trans.WordFor("Add Product")</h5>
                 <div class="card-body">
-                    <div class="input-group mb-3" style="margin-bottom: 10px">
+                    <div class="input-group mb-3 w-100" style="margin-bottom: 10px">
                         <div class="input-group-prepend">
                             <span class="input-group-text" id="basic-addon1">@trans.WordFor("Name")</span>
                         </div>
-                        <input type="text" class="form-control w-100" placeholder="Name" @bind="newdrink.Name" />
+                        <input type="text" class="form-control" placeholder="Name" @bind="newdrink.Name" />
                     </div>
-                    <div class="input-group mb-3" style="margin-bottom: 10px">
+                    <div class="input-group mb-3 w-100" style="margin-bottom: 10px">
                         <div class="input-group-prepend">
                             <span class="input-group-text" id="basic-addon1">@trans.WordFor("Price") [ct.]</span>
                         </div>
-                        <input type="number" class="form-control w-100" placeholder="Price [ct.]" @bind="newdrink.Price" />
+                        <input type="number" class="form-control" placeholder="Price [ct.]" @bind="newdrink.Price" />
                     </div>
                     <button id="send-new-drink" class="btn btn-primary w-100" @onclick="SendDrink">@trans.WordFor("Send")</button>
                 </div>

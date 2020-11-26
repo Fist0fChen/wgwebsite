@@ -24,6 +24,7 @@
             trans.SetLanguage(thisuser.Language);
             var tasks = db.GetKarmaTasks();
             var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
+            var datezero = new DateTime(0);
             foreach (var t in tasks)
             {
                 if (!t.Active) continue;
@@ -66,12 +67,18 @@
             </div>
 
             <div id="accordion">
-                @if (tasks.Any(t => t.Highlighted != null))
+                @if (tasks.Any(t => t.Highlighted != null && t.Highlighted > datezero))
                 {
                     <div class="card">
-                        <h5 class="card-header">@trans.WordFor("Urgent")</h5>
-                        <div class="l1body card-body" style="display:none;" data-parent="#accordion">
-                            <!--TODO: add highlighted tasks-->
+                        <h5 style="cursor:pointer;" class="card-header" onclick="$('.l1body').not('#urgent-body').slideUp(); $('#urgent-body').slideToggle();">@trans.WordFor("Urgent")</h5>
+                        <div id="urgent-body" class="l1body card-body" style="display:none;" data-parent="#accordion">
+                            @foreach (var t in tasks)
+                            {
+                                if (t.Highlighted != null && t.Highlighted > datezero)
+                                {
+                                    <KarmaTaskView ClassTag="urgent" Task="t" UserId="thisuser.UserId" ElementId=@("highlighted-" + t.KarmaTaskId)></KarmaTaskView>
+                                }
+                            }
                         </div>
                     </div>
                 }

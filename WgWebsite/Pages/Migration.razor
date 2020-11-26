@@ -1,0 +1,15 @@
+﻿@page "/migration"
+@{
+    var mig = new WgWebsite.Data.Migration.MigrationFromV1();
+    string userjson = "";
+}
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => WgWebsite.Model.Roles.Admin == c.Value))
+        {
+            <textarea placeholder="users" @bind="userjson"></textarea>
+            <button class="btn btn-primary" @onclick=@(e => mig.MigrateUsers(userjson))>Send Users</button>
+
+        }
+    </Authorized>
+</AuthorizeView>
