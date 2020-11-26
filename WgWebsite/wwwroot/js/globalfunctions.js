@@ -127,3 +127,18 @@ function searchKarma(e) {
     if (foundone && key != "") $('#searchresults').removeClass('collapse');
     else $('#searchresults').addClass('collapse');
 }
+function toggleKarmaEdit() {
+    $('#edit-toggle').toggleClass('active');
+    if ($('#edit-toggle').hasClass('active')) {
+        $('.karma-highlight-button').css('display', '');
+        $('.karma-edit-button').css('display', '');
+    }
+    else {
+        $('.karma-highlight-button').css('display', 'none');
+        $('.karma-edit-button').css('display', 'none');
+    }
+}
+function radiotoggle(id, cls, prop) {
+    $('.' + cls).removeClass(prop);
+    $('#' + id).addClass(prop);
+}

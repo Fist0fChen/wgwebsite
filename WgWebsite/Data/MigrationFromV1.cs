@@ -41,8 +41,37 @@ namespace WgWebsite.Data.Migration
             }
             dataContext.SaveChanges();
         }
+        public void MigrateTasks(string tasksjson)
+        {
+            try
+            {
+                var tasks = JsonConvert.DeserializeObject<List<KarmaTask>>(tasksjson);
+                var dbtasks = dataContext.Tasks.ToList();
+                foreach (var t in tasks)
+                {
+                    if (t.Name == null) continue;
+                    if (t.Categories == null) continue;
+                    if (dbtasks.Any(dbt => dbt.Name == t.Name)) continue;
+                    dataContext.Tasks.Add(new Model.KarmaTask
+                    {
+                        Name = t.Name.Replace("_", " "),
+                        Active = true,
+                        Categories = t.Categories.Aggregate((a, b) => a + " " + b),
+                        Description = t.Name,
+                        Frequency = t.Frequency,
+                        Highlighted = null,
+                        Karma = t.Karma
+                    });
+                }
+                dataContext.SaveChanges();
+            }
+            catch(Exception ex)
+            {
+
+            }
+        }
     }
-    public class Balance
+    internal class Balance
     {
         public int Id;
         public DateTime Date;
@@ -51,7 +80,7 @@ namespace WgWebsite.Data.Migration
         public bool Balanced;
 
     }
-    public class User
+    internal class User
     {
         public int Id;
         public string Name;
@@ -62,17 +91,26 @@ namespace WgWebsite.Data.Migration
         public string Notifications;
         public string Mail;
     }
-    public class DrinksHistory
+    internal class DrinksHistory
     {
         public int UserId;
         public int ProductId;
 
     }
-    public class Product
+    internal class Product
     {
         public int Id;
         public string Name;
         public float Cost;
         public bool Expired;
+    }
+    internal class KarmaTask
+    {
+        public int Id;
+        public string Name;
+        public float Frequency;
+        public int Karma;
+        public List<string> Categories;
+        public long Todo;
     }
 }

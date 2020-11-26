@@ -478,5 +478,111 @@ namespace WgWebsite.Data
                 busy = false;
             }
         }
+        public bool EnterPayment(long fromuser, long touser, long amount)
+        {
+            if (busy) return false;
+            if (fromuser == touser || amount == 0) return true;
+            if (amount < 0) return false;
+            if (fromuser < 0 && touser < 0) return false;
+            try
+            {
+                busy = true;
+                if (fromuser < 0 && touser > 0)
+                {
+                    if (!context.Users.Any(u => u.UserId == touser))
+                    {
+                        busy = false;
+                        return false;
+                    }
+                    context.Purchased.Add(new DrinkPurchase
+                    {
+                        Challenged = false,
+                        Comment = "payout",
+                        Cost = amount,
+                        Timestamp = DateTime.Now,
+                        UserId = touser
+                    });
+                }
+                else if(fromuser > 0 && touser < 0)
+                {
+                    if (!context.Users.Any(u => u.UserId == fromuser))
+                    {
+                        busy = false;
+                        return false;
+                    }
+                    context.Purchased.Add(new DrinkPurchase
+                    {
+                        Challenged = false,
+                        Comment = "deposit",
+                        Cost = -amount,
+                        Timestamp = DateTime.Now,
+                        UserId = fromuser
+                    });
+                }
+                else
+                {
+                    if (!context.Users.Any(u => u.UserId == fromuser) || !context.Users.Any(u => u.UserId == touser))
+                    {
+                        busy = false;
+                        return false;
+                    }
+                    context.Purchased.Add(new DrinkPurchase
+                    {
+                        Challenged = false,
+                        Comment = "transfer to " + touser,
+                        Cost = amount,
+                        Timestamp = DateTime.Now,
+                        UserId = fromuser
+                    });
+                    context.Purchased.Add(new DrinkPurchase
+                    {
+                        Challenged = false,
+                        Comment = "transfer from " + fromuser,
+                        Cost = -amount,
+                        Timestamp = DateTime.Now,
+                        UserId = touser
+                    });
+                }
+
+                context.SaveChanges();
+                busy = false;
+                return true;
+            }
+            catch (Exception)
+            {
+                busy = false;
+                return false;
+            }
+            finally
+            {
+                busy = false;
+            }
+        }
+        public IEnumerable<TodoTask> GetTodos()
+        {
+            return context.Todos.ToList();
+        }
+        public bool AddTodo(TodoTask todo)
+        {
+            if (busy) return false;
+            if (todo.Name == null) return false;
+            try
+            {
+                busy = true;
+                context.Todos.Add(todo);
+                context.SaveChanges();
+                busy = false;
+                return true;
+            }
+            catch (Exception)
+            {
+                busy = false;
+                return false;
+            }
+            finally
+            {
+                busy = false;
+            }
+        }
     }
 }

@@ -1,0 +1,83 @@
+﻿@page "/payments"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+@using System.Linq
+
+@code {
+    private long sender, receiver, amount;
+
+    private void EnterTransfer()
+    {
+        if(db.EnterPayment(sender, receiver, amount))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-transfer", trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-transfer", trans.WordFor("Failed"));
+    }
+}
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin || c.Value == Model.Roles.Admin))
+        {
+            var users = db.GetDrinkEntries();
+            var debts = new Dictionary<long, long>();
+            foreach(var u in users)
+            {
+                debts.Add(u.UserId, u.DrinkPurchases.Aggregate((long)0, (val, purchase) => val + purchase.Cost));
+            }
+            <div class="card">
+                <h5 class="card-header">@trans.WordFor("Transfer Money")</h5>
+                <div class="card-body">
+                    <div class="row card-title">
+                        <div class="col">@trans.WordFor("From")</div>
+                        <div class="col"></div>
+                        <div class="col">@trans.WordFor("To")</div>
+                    </div>
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col">
+
+                            <div class="btn-group-vertical">
+                                <button id="from-bank" class="btn btn-secondary payment-from" onclick="radiotoggle('from-bank', 'payment-from', 'btn-primary')">
+                                    <div @onclick=@(e => sender = -1)>@trans.WordFor("Bank")</div>
+                                </button>
+                                @foreach (var u in users)
+                                {
+                                    var user = u;
+                                    var credit = -((float)debts[user.UserId]) / 100.0;
+                                    <button id="from-@(user.UserId)" class="btn btn-secondary payment-from" onclick="radiotoggle('from-@user.UserId', 'payment-from', 'btn-primary')">
+                                        <div @onclick=@(e => sender = user.UserId)>
+                                            <span>@user.Name</span>
+                                            <span>@credit €</span>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div class="col">
+                            <input type="number" class="form-control w-100" placeholder="€" @bind="amount"/>
+                        </div>
+                        <div class="col">
+                            <div class="btn-group-vertical">
+                                <button id="to-bank" class="btn btn-secondary payment-to" onclick="radiotoggle('to-bank', 'payment-to', 'btn-primary')">
+                                    <div @onclick=@(e => receiver = -1)>@trans.WordFor("Bank")</div>
+                                </button>
+                                @foreach (var u in users)
+                                {
+                                    var user = u;
+                                    var credit = -((float)debts[user.UserId]) / 100.0;
+                                    <button id="to-@(user.UserId)" class="btn btn-secondary payment-to" onclick="radiotoggle('to-@user.UserId', 'payment-to', 'btn-primary')">
+                                        <div @onclick=@(e => receiver = user.UserId)>
+                                            <span>@user.Name</span>
+                                            <span>@credit €</span>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <button id="send-transfer" @onclick="EnterTransfer" class="btn btn-primary w-100">@trans.WordFor("Send")</button>
+                </div>
+            </div>
+        }
+    </Authorized>
+</AuthorizeView>

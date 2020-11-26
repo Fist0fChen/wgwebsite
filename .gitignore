@@ -407,3 +407,25 @@ ASALocalRun/
 dbdata/
 dbdata_bu/
 
+legacydata/balances.txt
+legacydata/drinksHistory.txt
+legacydata/drinksHistory1600964697022.txt
+legacydata/karmaHistory.txt
+legacydata/karmaHistory1556670139763.txt
+legacydata/karmaHistory1562012048416.txt
+legacydata/karmaHistory1567357086701.txt
+legacydata/karmaHistory1572701018395.txt
+legacydata/karmaHistory1577976003928.txt
+legacydata/karmaHistory1583248512340.txt
+legacydata/karmaHistory1588523550068.txt
+legacydata/karmaHistory1593969465652.txt
+legacydata/karmaHistory1599296555678.txt
+legacydata/karmaHistory1604574957385.txt
+legacydata/karmaTasks.txt
+legacydata/lastBackup.txt
+legacydata/notifications.txt
+legacydata/permissions.txt
+legacydata/products.txt
+legacydata/shoppingList.txt
+legacydata/toCancel.txt
+legacydata/users.txt

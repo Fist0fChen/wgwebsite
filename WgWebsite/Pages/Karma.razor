@@ -24,6 +24,7 @@
             trans.SetLanguage(thisuser.Language);
             var tasks = db.GetKarmaTasks();
             var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
+            var usedkey = new List<string>();
             var datezero = new DateTime(0);
             foreach (var t in tasks)
             {
@@ -45,7 +46,12 @@
         @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
         {
             <div class="card" style="margin-bottom:10px;">
-                <div style="cursor:pointer" class="card-header"><h5 onclick="$('#options-body').slideToggle()">@trans.WordFor("Options")</h5></div>
+                <div style="cursor:pointer" class="card-header row">
+                    <div style=" font-size: 1.25rem; font-weight: 500;" class="col-9" onclick="$('#options-body').slideToggle()">@trans.WordFor("Options")</div>
+                    <div class="col" style="text-align: center">
+                        <img id="edit-toggle" src="@Model.Themes.Icon("cog-wheel")" style="width:30px;" onclick="toggleKarmaEdit()" />
+                    </div>
+                </div>
                 <div class="card-body" id="options-body" style="display:none;">
                     <a class="btn btn-secondary" style="margin: 5px;" role="button" type="button" href="/editkarma">@trans.WordFor("New Task")</a>
                     <a class="btn btn-secondary" style="margin: 5px;" role="button" type="button" href="/activatetasks">@trans.WordFor("De/activate Tasks")</a>
@@ -87,24 +93,24 @@
                     <div class="card">
                         <div class="card-header" style="cursor:pointer" id="@(category.Key)h1">
                             <h5 class="mb-0" onclick="$('.l1body').not('#@(category.Key)l1').slideUp(); if ($('#@(category.Key)l1').css('display') == 'none') $('#@(category.Key)l1').slideDown(); else $('#@(category.Key)l1').slideUp()">
-                                @category.Key
+                                @category.Key.Replace("_", " ")
                             </h5>
                         </div>
 
                         <div id="@(category.Key)l1" class="l1body" style="display:none;" data-parent="#accordion">
-                            <div class="card-body">
+                            <div class="card-body" style="padding: 3px;">
                                 @foreach (var subcat in category.Value)
                                 {
                                     <div class="card">
-                                        <div class="card-header" style="cursor:pointer" id="@(subcat.Key)h2">
-                                            <h6 class="mb-0" onclick="$('.l2body').not('#@(subcat.Key)l2').slideUp(); if ($('#@(subcat.Key)l2').css('display') == 'none') $('#@(subcat.Key)l2').slideDown(); else $('#@(subcat.Key)l2').slideUp()">
-                                                @subcat.Key
+                                        <div class="card-header" style="cursor:pointer" id="@(category.Key + "-" + subcat.Key)h2">
+                                            <h6 class="mb-0" onclick="$('.l2body').not('#@(category.Key + "-" + subcat.Key)l2').slideUp(); $('#@(category.Key + "-" + subcat.Key)l2').slideToggle();">
+                                                @subcat.Key.Replace("_", " ")
                                             </h6>
                                         </div>
                                     </div>
 
-                                    <div id="@(subcat.Key)l2" class="l2body" style="display:none;" data-parent="#accordion">
-                                        <div class="card-body">
+                                    <div id="@(category.Key + "-" + subcat.Key)l2" class="l2body" style="display:none;" data-parent="#accordion">
+                                        <div class="card-body" style="padding: 3px;">
                                             @foreach (var t in subcat.Value)
                                             {
                                                 @if (!t.Active) continue;

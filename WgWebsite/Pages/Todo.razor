@@ -1,0 +1,59 @@
+﻿@page "/todos"
+@inject Data.DataBaseService db
+@inject Data.Translator trans
+@inject IJSRuntime JSRuntime
+
+@code{
+    Model.TodoTask NewTodo;
+    protected override void OnInitialized()
+    {
+        NewTodo = new Model.TodoTask();
+    }
+}
+@{
+    var todos = db.GetTodos();
+
+    void SendNewTodo()
+    {
+        if(db.AddTodo(NewTodo))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-todo", trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-todo", trans.WordFor("Failed"));
+    }
+}
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+        {
+            <div class="card" style="margin-bottom:10px">
+                <h5 class="card-header">@trans.WordFor("New Todo")</h5>
+                <div class="card-body" >
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">@trans.WordFor("Title")</span>
+                        </div>
+                        <input class="form-control" type="text" placeholder="@trans.WordFor("Title")" @bind="NewTodo.Name" />
+                    </div>
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">@trans.WordFor("Karma")</span>
+                        </div>
+                        <input class="form-control" type="number" placeholder="@trans.WordFor("Karma")" @bind="NewTodo.Karma" />
+                    </div>
+                    <button id="send-todo" @onclick="SendNewTodo" class="btn btn-primary w-100">@trans.WordFor("Send")</button>
+                </div>
+            </div>
+            @foreach(var todo in todos)
+            {
+                if (todo.Done) continue;
+                <div class="card" style="margin-bottom:10px">
+                    <h5 class="card-header">@todo.Name</h5>
+                    <div class="card-body">
+                        <button class="btn btn-success">@trans.WordFor("Done")</button>
+                        <button class="btn btn-danger">@trans.WordFor("Remove")</button>
+                    </div>
+                </div>
+            }
+        }
+    </Authorized>
+</AuthorizeView>

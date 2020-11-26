@@ -22,15 +22,15 @@
                     </NavLink>
                 </li>
                 <!--<li class="nav-item px-3">
-        <NavLink class="nav-link" href="counter">
-            <span class="oi oi-plus" aria-hidden="true"></span> Counter
-        </NavLink>
-    </li>-->
+                    <NavLink class="nav-link" href="counter">
+                        <span class="oi oi-plus" aria-hidden="true"></span> Counter
+                    </NavLink>
+                </li>-->
                 @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
                 {
                     <li class="nav-item px-3">
                         <NavLink class="nav-link" href="karma">
-                            <span class="oi oi-list-rich" aria-hidden="true"></span>Karma
+                            <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("yin-yang-w")" /></div>Karma
                         </NavLink>
                     </li>
                 }
@@ -39,6 +39,14 @@
                     <li class="nav-item px-3">
                         <NavLink class="nav-link" href="drinks">
                             <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("glass-w")" /></div>@trans.WordFor("Drinks")
+                        </NavLink>
+                    </li>
+                }
+                @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+                {
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="todos">
+                            <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("check-square-w")" /></div>@trans.WordFor("Todo")
                         </NavLink>
                     </li>
                 }
@@ -53,7 +61,7 @@
     <NotAuthorized>
         <LoginControl />
     </NotAuthorized>
-</AuthorizeView>
+    </AuthorizeView>
 @code {
     private bool collapseNavMenu = true;
 
@@ -63,4 +71,4 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
-}
+    }

@@ -181,4 +181,11 @@ app {
         /* Never collapse the sidebar for wide screens */
         display: block;
     }
+    #edit-toggle {
+        border-radius: 3px;
+        transition: background .2s ease-in-out;
+    }
+    #edit-toggle.active{
+        background: darkgrey;
+    }
 }

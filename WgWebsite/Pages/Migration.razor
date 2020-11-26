@@ -2,6 +2,7 @@
 @{
     var mig = new WgWebsite.Data.Migration.MigrationFromV1();
     string userjson = "";
+    string tasksjson = "";
 }
 <AuthorizeView>
     <Authorized>
@@ -10,6 +11,8 @@
             <textarea placeholder="users" @bind="userjson"></textarea>
             <button class="btn btn-primary" @onclick=@(e => mig.MigrateUsers(userjson))>Send Users</button>
 
+            <textarea placeholder="tasks" @bind="tasksjson"></textarea>
+            <button class="btn btn-primary" @onclick=@(e => mig.MigrateTasks(tasksjson))>Send Users</button>
         }
     </Authorized>
 </AuthorizeView>

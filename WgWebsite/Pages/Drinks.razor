@@ -30,6 +30,7 @@
                     @if (context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin))
                     {
                         <a class="btn btn-secondary" style="margin: 5px;" href="/editdrinks">@trans.WordFor("Edit Drinks")</a>
+                        <a class="btn btn-secondary" style="margin: 5px;" href="/payments">@trans.WordFor("Payments")</a>
                     }
                     <a class="btn btn-secondary" style="margin: 5px;" href="/drinkentries">@trans.WordFor("Entered Drinks")</a>
                 </div>
