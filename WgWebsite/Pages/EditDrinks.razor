@@ -4,10 +4,16 @@
 @inject IJSRuntime JSRuntime
 @code {
     private Model.Drink newdrink = new Model.Drink() { Active = true };
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        JSRuntime.InvokeVoidAsync("formatInputPrice");
+    }
     private void SendDrink()
     {
         if (db.AddDrink(newdrink))
         {
+            newdrink = new Model.Drink() { Active = true };
             JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "send-new-drink", trans.WordFor("Done"));
         }
         else
@@ -44,7 +50,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text" id="basic-addon1">@trans.WordFor("Price") [ct.]</span>
                         </div>
-                        <input type="number" class="form-control" placeholder="Price [ct.]" @bind="newdrink.Price" />
+                        <input type="number" class="form-control price-input" placeholder="Price [ct.]" @bind="newdrink.Price" />
                     </div>
                     <button id="send-new-drink" class="btn btn-primary w-100" @onclick="SendDrink">@trans.WordFor("Send")</button>
                 </div>
@@ -68,7 +74,7 @@
                                 var id = k;
                                 <tr>
                                     <td onclick="$('#drink-active@(drinks[k].DrinkId)').click()">@drinks[k].Name</td>
-                                    <td onclick="$('#drink-active@(drinks[k].DrinkId)').click()">@(((float)drinks[k].Price)/100) €</td>
+                                    <td onclick="$('#drink-active@(drinks[k].DrinkId)').click()">@((((float)drinks[k].Price)/100).ToString("0.00")) €</td>
                                     <td><input id="drink-active-@drinks[k].DrinkId" type="checkbox" @bind="drinks[k].Active" /></td>
                                 </tr>
                             }

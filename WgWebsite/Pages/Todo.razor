@@ -20,14 +20,29 @@
         else
             JSRuntime.InvokeVoidAsync("highlightButtonFail", "send-todo", trans.WordFor("Failed"));
     }
+    void DoTodo(long todoid, long userid)
+    {
+        if(db.FinishTodo(todoid, userid))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "finish-" + todoid, trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "finish-" + todoid, trans.WordFor("Failed"));
+    }
+    void RemoveTodo(long todoid)
+    {
+        if (db.RemoveTodo(todoid))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "remove-" + todoid, trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "remove-" + todoid, trans.WordFor("Failed"));
+    }
 }
 <AuthorizeView>
     <Authorized>
         @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
         {
+            var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
             <div class="card" style="margin-bottom:10px">
-                <h5 class="card-header">@trans.WordFor("New Todo")</h5>
-                <div class="card-body" >
+                <h5 class="card-header" style="cursor:pointer;" onclick="$('#new-todo').slideToggle();">@trans.WordFor("New Todo")</h5>
+                <div class="card-body" id="new-todo" style="display:none;" >
                     <div class="input-group mb-3">
                         <div class="input-group-prepend">
                             <span class="input-group-text">@trans.WordFor("Title")</span>
@@ -49,8 +64,8 @@
                 <div class="card" style="margin-bottom:10px">
                     <h5 class="card-header">@todo.Name</h5>
                     <div class="card-body">
-                        <button class="btn btn-success">@trans.WordFor("Done")</button>
-                        <button class="btn btn-danger">@trans.WordFor("Remove")</button>
+                        <button id="finish-@todo.TodoTaskId" @onclick=@(e => DoTodo(todo.TodoTaskId, thisuser.UserId)) class="btn btn-success">@trans.WordFor("Done")</button>
+                        <button id="remove-@todo.TodoTaskId" @onclick=@(e => RemoveTodo(todo.TodoTaskId)) class="btn btn-danger">@trans.WordFor("Remove")</button>
                     </div>
                 </div>
             }

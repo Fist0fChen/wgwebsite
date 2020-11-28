@@ -142,3 +142,42 @@ function radiotoggle(id, cls, prop) {
     $('.' + cls).removeClass(prop);
     $('#' + id).addClass(prop);
 }
+function formatInputPrice() {
+    $('.price-input').keyup(e => {
+        let val = "" + $(e.target).val();
+        if (val.length == 0) {
+            $(e.target).val("0,00");
+        }
+        else if (val.length == 1) {
+            $(e.target).val("0,0" + val);
+        }
+        else if (val.length == 2) {
+            $(e.target).val("0," + val);
+        }
+        else {
+            $(e.target).val(val.substring(0, val.length - 2) + "," + val.substring(val.length - 2));
+        }
+    });
+}
+function loginHelper() {
+    let user = $('#username').val();
+    let password = $('#password').val();
+    document.location.href = "/login?paramUsername=" + user + "&paramPassword=" + password;
+}
+$(document).ready(() => {
+    resizestuff();
+    setTimeout(() => resizestuff(), 500);
+    $(window).resize(() => {
+        resizestuff();
+    });
+});
+
+function resizestuff() {
+    if ($(document).width() > 767) {
+        $('#nav-menu').css('display', '');
+        $('#scroll-container').css('height', $(window).height() + "px");
+    }
+    else {
+        $('#scroll-container').css('height', ($(window).height() - 56) + "px");
+    }
+}

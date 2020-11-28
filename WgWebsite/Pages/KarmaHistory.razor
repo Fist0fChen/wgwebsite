@@ -5,86 +5,154 @@
 @using System.Linq
 
 @code {
+    IEnumerable<Model.KarmaTask> tasks;
+    IEnumerable<Model.User> karmadata;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        karmadata = db.GetKarmaStats();
+        tasks = db.GetKarmaTasks();
+    }
+    private string displayname(Model.KarmaEntry entry)
+    {
+        var task = tasks.FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId);
+        var dispname = "";
+        if (task == null)
+        {
+            if (entry.Comment != null && entry.Comment.Length > 0) dispname = entry.Comment;
+            else dispname = trans.WordFor("Unknown Task");
+        }
+        else dispname = task.Name;
+        return dispname;
+    }
+    private void ApproveEntry(long entryid)
+    {
+        if(db.ApproveKarmaEntry(entryid))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "approve-" + entryid, trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "approve-" + entryid, trans.WordFor("Failed"));
+    }
+    private void DeclineEntry(long entryid)
+    {
+        if (db.DeclineKarmaEntry(entryid))
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "decline-" + entryid, trans.WordFor("Done"));
+        else
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", "decline-" + entryid, trans.WordFor("Failed"));
+    }
+    private void DeleteEntry(long entryid)
+    {
+        if (db.DeleteKarmaEntry(entryid))
+        {
+            JSRuntime.InvokeVoidAsync("reload");
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonFail", entryid + "-task", trans.WordFor("Failed"));
+        }
+    }
 }
 
 <AuthorizeView>
     <Authorized>
         @{
+            karmadata = db.GetKarmaStats();
+            tasks = db.GetKarmaTasks();
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
-            void DeleteEntry(long entryid)
-            {
-                if (db.DeleteKarmaEntry(entryid))
-                {
-                    JSRuntime.InvokeVoidAsync("reload");
-                }
-                else
-                {
-                    JSRuntime.InvokeVoidAsync("highlightButtonFail", entryid + "-task", trans.WordFor("Failed"));
-                }
-            }
         }
-        @if (thisuser.Role.Split(' ').Any(r => r == Model.Roles.Karma))
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma) && karmadata.Any(u => u.KarmaEntries.Any(e => !e.Approved))){
+            <div class="card">
+                <div class="card-header">@trans.WordFor("Unapproved Guest Karma")</div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>@trans.WordFor("User")</th>
+                                <th>@trans.WordFor("Task Name")</th>
+                                <th>@trans.WordFor("Karma")</th>
+                                <th>@trans.WordFor("Action")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var u in karmadata)
+                            {
+                                var sortedentries = u.KarmaEntries.OrderByDescending(e => e.Timestamp.Ticks);
+                                foreach(var e in sortedentries)
+                                {
+                                    if (e.Approved) continue;
+                                    <tr>
+                                        <td>@u.Name</td>
+                                        <td>@(displayname(e))</td>
+                                        <td>@e.Karma</td>
+                                        <td>
+                                            <button id="approve-@e.KarmaEntryId" class="btn btn-success" @onclick=@(f => ApproveEntry(e.KarmaEntryId))>
+                                                <img style="width:20px;" src="@Model.Themes.Icon("check")" />
+                                            </button>
+                                            <button id="decline-@e.KarmaEntryId" class="btn btn-danger" @onclick=@(f => DeclineEntry(e.KarmaEntryId))>
+                                                <img style="width:20px;" src="@Model.Themes.Icon("times")"/>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma || c.Value == Model.Roles.KarmaGuest))
         {
-            var tasks = db.GetKarmaTasks();
-            var karmadata = db.GetKarmaStats();
-            var sortedkarma  = karmadata.OrderBy(u => u.UserId == thisuser.UserId ? 0 : 1);
+            if (karmadata == null) karmadata = db.GetKarmaStats();
+            var sortedkarma = karmadata.OrderBy(u => u.UserId == thisuser.UserId ? 0 : 1);
             foreach (var user in sortedkarma)
             {
-                <div class="card" style="margin-bottom:10px;">
-                    <div class="card-header" style="font-weight: bold; font-size: 20px; cursor:pointer;" onclick="$('.karma-body').not('karma-body-@user.UserId').slideUp(); $('karma-body-@user.UserId').slideToggle();">
-                        <div style="float: left;">@user.Name</div>
-                        <div style="float: right">@trans.WordFor("Total Karma") @user.KarmaEntries.Aggregate(0, (e1, e2) => e1 + e2.Karma)</div>
-                    </div>
+                    <div class="card" style="margin-bottom:10px;">
+                        <div class="card-header" style="font-weight: bold; font-size: 20px; cursor:pointer;" onclick="$('.karma-body').not('#karma-body-@user.UserId').slideUp(); $('#karma-body-@user.UserId').slideToggle();">
+                            <div style="float: left;">@user.Name</div>
+                            <div style="float: right">@trans.WordFor("Total Karma") @user.KarmaEntries.Aggregate(0, (e1, e2) => e1 + (e2.Approved ? e2.Karma : 0))</div>
+                        </div>
 
-                    <div class="card-body karma-body" id="karma-body-@user.UserId">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    @if (thisuser.UserId == user.UserId)
-                                    {
-                                        <th>@trans.WordFor("Delete")</th>
-                                    }
-                                    <th>@trans.WordFor("Task")</th>
-                                    <th class="d-none d-md-table-cell">@trans.WordFor("Date")</th>
-                                    <th>@trans.WordFor("Karma")</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var entry in user.KarmaEntries)
-                                {
-                                    var entryid = entry.KarmaEntryId;
-                                    var task = @tasks.FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId);
-                                    var displayname = "";
-                                    if (task == null)
-                                    {
-                                        if (entry.Comment != null && entry.Comment.Length > 0) displayname = entry.Comment;
-                                        else displayname = trans.WordFor("Unknown Task");
-                                    }
-                                    else displayname = task.Name;
+                        <div class="card-body karma-body" id="karma-body-@user.UserId" style="display:none;">
+                            <table class="table">
+                                <thead>
                                     <tr>
                                         @if (thisuser.UserId == user.UserId)
                                         {
-                                            <td>
-
-                                                <button id="@(entryid)-task" class="btn btn-danger btn-sm" @onclick=@(e => DeleteEntry(entryid))>
-                                                    <img style="width:20px" src="@Model.Themes.Icon("minus")" />
-                                                </button>
-
-                                            </td>
+                                            <th>@trans.WordFor("Delete")</th>
                                         }
-                                        <td>
-                                            <span onclick="$('#date-@(entry.KarmaEntryId)').toggle()">@displayname</span>
-                                            <span style="display:none;" id="date-@(entry.KarmaEntryId)" class="d-md-none">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</span>
-                                        </td>
-                                        <td class="d-none d-md-table-cell">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</td>
-                                        <td>@entry.Karma</td>
+                                        <th>@trans.WordFor("Task")</th>
+                                        <th class="d-none d-md-table-cell">@trans.WordFor("Date")</th>
+                                        <th>@trans.WordFor("Karma")</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in user.KarmaEntries)
+                                    {
+                                        var entryid = entry.KarmaEntryId;
+                                        
+                                        <tr>
+                                            @if (thisuser.UserId == user.UserId)
+                                            {
+                                                <td>
+
+                                                    <button id="@(entryid)-task" class="btn btn-danger btn-sm" @onclick=@(e => DeleteEntry(entryid))>
+                                                        <img style="width:20px" src="@Model.Themes.Icon("minus")" />
+                                                    </button>
+
+                                                </td>
+                                            }
+                                            <td>
+                                                <span onclick="$('#date-@(entry.KarmaEntryId)').toggle()">@(displayname(entry))</span>
+                                                <span style="display:none;" id="date-@(entry.KarmaEntryId)" class="d-md-none">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</span>
+                                            </td>
+                                            <td class="d-none d-md-table-cell">@entry.Timestamp.ToString("dd.MM.yyyy HH:mm:ss")</td>
+                                            <td>@entry.Karma</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                }
             }
-        }
     </Authorized>
 </AuthorizeView>

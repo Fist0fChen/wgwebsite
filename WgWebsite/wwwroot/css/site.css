@@ -2,6 +2,7 @@
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    height: 100%;
 }
 
 a, .btn-link {
@@ -188,4 +189,16 @@ app {
     #edit-toggle.active{
         background: darkgrey;
     }
+}
+@media only screen and (max-width: 767px) {
+    #nav-menu {
+        display:none;
+    }
+    #scroll-container{
+        height: 100%;
+    }
+}
+#scroll-container {
+    overflow-y: scroll;
+    padding-top: 1.1em;
 }

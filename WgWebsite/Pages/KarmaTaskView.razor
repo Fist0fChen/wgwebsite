@@ -39,6 +39,14 @@
             StateHasChanged();
         }
     }
+    private void UnHighlightTask(long taskid)
+    {
+        if (db.UnHighlightTask(taskid))
+        {
+            JSRuntime.InvokeVoidAsync("highlightButtonSuccess", "task-" + taskid, trans.WordFor("Unhighlighted"), ".");
+            StateHasChanged();
+        }
+    }
 }
 
 <div id="@ElementId" style="margin: 3px;" class="btn-group mr-2 @ClassTag" name="@Task.Name">
@@ -47,6 +55,12 @@
     {
         <button style="display:none;" class="btn btn-secondary karma-highlight-button" @onclick=@(e => HighlightTask(Task.KarmaTaskId))>
             <img style="width:20px;" src="@Model.Themes.Icon("plus-circle")" />
+        </button>
+    }
+    else
+    {
+        <button style="display:none;" class="btn btn-secondary karma-highlight-button" @onclick=@(e => UnHighlightTask(Task.KarmaTaskId))>
+            <img style="width:20px;" src="@Model.Themes.Icon("minus-circle")" />
         </button>
     }
     <button style="display:none;" onclick="document.location.href = '/editkarma?id=@Task.KarmaTaskId'" role="button" type="button" class="btn btn-secondary karma-edit-button">

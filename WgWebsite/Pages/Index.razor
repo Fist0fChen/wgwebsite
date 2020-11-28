@@ -10,29 +10,8 @@
 
 @code {
     private List<User> users;
-    private Dictionary<string, string> CollapseValues = new Dictionary<string, string>()
-{
-        {"addUser", "collapse"},
-        {"changePermissions", "collapse"},
-        {"changeLang", "collapse"},
-        {"changePic", "collapse"},
-        {"changePw", "collapse" }
-    };
     List<string> currentRoles;
     private Dictionary<long, Dictionary<string, bool>> roles;
-    private void ToggleCollapse(string which)
-    {
-        string[] keys = new string[CollapseValues.Keys.Count];
-        CollapseValues.Keys.CopyTo(keys, 0);
-        foreach (var key in keys)
-        {
-            if (key != which) CollapseValues[key] = "collapse";
-            else if (CollapseValues[key] == "")
-                CollapseValues[key] = "collapse";
-            else
-                CollapseValues[key] = "";
-        }
-    }
     private User NewUser = new User();
     private string newPassword = "";
     private string newPasswordRepeat = "";
@@ -42,13 +21,16 @@
     private string newLanguage = "";
     protected override void OnInitialized()
     {
-        users = db.GetUserRoles().ToList();
+        users = db.GetUserRoles()?.ToList();
         currentRoles = Roles.getAll();
         roles = new Dictionary<long, Dictionary<string, bool>>();
-        foreach (var u in users)
+        if(users != null)
         {
-            roles.Add(u.UserId, new Dictionary<string, bool>());
-            foreach (var r in Roles.getAll()) roles[u.UserId].Add(r, u.Role.Contains(r));
+            foreach (var u in users)
+            {
+                roles.Add(u.UserId, new Dictionary<string, bool>());
+                foreach (var r in Roles.getAll()) roles[u.UserId].Add(r, u.Role.Contains(r));
+            }
         }
     }
     private void SendChangePw(long userid)
@@ -135,9 +117,9 @@
         <div style="height: 30px;">&nbsp;</div>
         <div class="card-deck" style="margin-bottom:10px;">
             <div class="card h-100">
-                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change Language")</h5>
-                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changeLang"))>@trans.WordFor("Change the language of this site")</div>
-                <div class="card-body @CollapseValues["changeLang"]">
+                <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#language-body').slideUp(); $('#language-body').slideToggle();">@trans.WordFor("Change Language")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#language-body').slideUp(); $('#language-body').slideToggle();">@trans.WordFor("Change the language of this site")</div>
+                <div style="display:none" id="language-body" class="card-body settings-body">
                     <div class="form-check">
                         @foreach (var lang in trans.Languages())
                         {
@@ -158,16 +140,16 @@
                 </div>
             </div>
             <div class="card h-100">
-                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Change Picture")</h5>
-                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Add or change your profile picture")</div>
-                <div class="card-body @CollapseValues["changePic"]">
+                <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#picture-body').slideUp(); $('#picture-body').slideToggle();">@trans.WordFor("Change Picture")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#picture-body').slideUp(); $('#picture-body').slideToggle();">@trans.WordFor("Add or change your profile picture")</div>
+                <div style="display:none" id="picture-body" class="card-body settings-body">
                     TODO: upload field
                 </div>
             </div>
             <div class="card h-100">
-                <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePw"))>@trans.WordFor("Change Password")</h5>
-                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePic"))>@trans.WordFor("Change your password")</div>
-                <div class="card-body @CollapseValues["changePw"]">
+                <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#password-body').slideUp(); $('#password-body').slideToggle();">@trans.WordFor("Change Password")</h5>
+                <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#password-body').slideUp(); $('#password-body').slideToggle();">@trans.WordFor("Change your password")</div>
+                <div style="display:none" id="password-body" class="settings-body card-body">
                     <input class="form-control" placeholder=@trans.WordFor("Password") type="password" @bind="newPassword" />
                     <div style="height: 10px; width:10px;"></div>
                     <input class="form-control" placeholder=@trans.WordFor("Repeat") type="password" @bind="newPasswordRepeat" />
@@ -180,9 +162,9 @@
             @if (context.User.Claims.Any(c => c.Value == Roles.Karma))
             {
                 <div class="card h-100">
-                    <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("addUser"))>@trans.WordFor("Add User")</h5>
-                    <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("addUser"))>@trans.WordFor("Add a new user here")</div>
-                    <div id="add-user-body" class="card-body @CollapseValues["addUser"]">
+                    <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#add-user-body').slideUp(); $('#add-user-body').slideToggle();">@trans.WordFor("Add User")</h5>
+                    <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#add-user-body').slideUp(); $('#add-user-body').slideToggle();">@trans.WordFor("Add a new user here")</div>
+                    <div id="add-user-body" style="display:none" class="settings-body card-body">
                         <input class="form-control" placeholder=@trans.WordFor("Name") type="text" @bind="NewUser.Name" />
                         <div style="height: 10px; width:10px;"></div>
                         <input class="form-control" placeholder=@trans.WordFor("Email") type="email" @bind="NewUser.Email" />
@@ -198,9 +180,9 @@
             @if (context.User.Claims.Any(c => c.Value == Roles.Admin))
             {
                 <div class="card h-100">
-                    <h5 class="card-header" style="cursor:pointer;" @onclick=@(e => ToggleCollapse("changePermissions"))>@trans.WordFor("Change user permissions")</h5>
-                    <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" @onclick=@(e => ToggleCollapse("changePermissions"))>@trans.WordFor("Add or remove permissions to users")</div>
-                    <div class="card-body @CollapseValues["changePermissions"]">
+                    <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#permissions-body').slideUp(); $('#permissions-body').slideToggle();">@trans.WordFor("Change user permissions")</h5>
+                    <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#permissions-body').slideUp(); $('#permissions-body').slideToggle();">@trans.WordFor("Add or remove permissions to users")</div>
+                    <div id="permissions-body" style="display:none" class="card-body settings-body">
                         @for (var k = 0; k < users.Count; k++)
                         {
                             <div class="card-body">
@@ -220,7 +202,6 @@
                     </div>
                 </div>
             }
-
         </div>
     </Authorized>
 </AuthorizeView>

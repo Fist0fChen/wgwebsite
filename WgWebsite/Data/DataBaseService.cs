@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,14 @@ namespace WgWebsite.Data
 {
     public class DataBaseService
     {
+        private const int Retries = 3;
         private KarmaDataContext context;
         private bool busy;
+        private Random rnd;
+        private int RandomDelay => 50 + rnd.Next(100);
         public DataBaseService()
         {
+            rnd = new Random(DateTime.Now.Millisecond);
             context = new KarmaDataContext();
             /*if(context.KarmaBalances.ToList().Count == 0)
             {
@@ -23,78 +29,83 @@ namespace WgWebsite.Data
                 });
             }*/
         }
+        private T SafeTaskWrapperSingle<T, U>(U arg, Func<U, T> func, int retry = 0)
+        {
+            if (busy)
+            {
+                if (retry >= Retries) return default(T);
+                Thread.Sleep(RandomDelay);
+                return SafeTaskWrapperSingle(arg, func, ++retry);
+            }
+            else
+            {
+                try
+                {
+                    busy = true;
+                    var result = func(arg);
+                    busy = false;
+                    return result;
+                }
+                catch (Exception)
+                {
+                    busy = false;
+                    return default(T);
+                }
+                finally
+                {
+                    busy = false;
+                }
+            }
+        }
         public bool AddDrink(Drink drink)
         {
-            if (busy) return false;
-            try
+            return SafeTaskWrapperSingle(drink, d =>
             {
                 if (drink.Name.Length > 3 && drink.Price > 0)
                 {
-                    busy = true;
                     context.Drinks.Add(drink);
                     context.SaveChanges();
-                    busy = false;
                     return true;
                 }
                 return false;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool HighlightTask(long taskid)
         {
-            if (busy) return false;
-            try
+            return SafeTaskWrapperSingle(taskid, (taskid) =>
             {
                 var task = context.Tasks.FirstOrDefault(t => t.KarmaTaskId == taskid);
                 if (task == null) return false;
-                busy = true;
                 task.Highlighted = DateTime.Now;
                 context.Tasks.Update(task);
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            }); 
         }
         public User GetUserById(long userid)
         {
-            var user = context.Users.FirstOrDefault(u => u.UserId == userid);
-            if (user == null) return null;
-            var usercp = new User
+            return SafeTaskWrapperSingle(userid, (userid) =>
             {
-                BrowsePosition = user.BrowsePosition,
-                Email = user.Email,
-                Language = user.Language,
-                Name = user.Name,
-                Notifications = user.Notifications,
-                Role = user.Role,
-                Theme = user.Theme,
-                UserId = user.UserId
-            };
-            return usercp;
+                var user = context.Users.FirstOrDefault(u => u.UserId == userid);
+                if (user == null) return null;
+                var usercp = new User
+                {
+                    BrowsePosition = user.BrowsePosition,
+                    Email = user.Email,
+                    Language = user.Language,
+                    Name = user.Name,
+                    Notifications = user.Notifications,
+                    Role = user.Role,
+                    Theme = user.Theme,
+                    UserId = user.UserId
+                };
+                return usercp;
+            });
         }
         public bool AddUser(User user)
         {
-            if (busy) return false;
-            try
+            return SafeTaskWrapperSingle(user, (user) =>
             {
-                busy = true;
                 if (user.Email != null && user.Name != null && user.PassHash != null)
                 {
                     if (user.Email.Contains("@") && !context.Users.Any(u => u.Name == user.Name) && user.Name.Length > 3 &&
@@ -106,108 +117,93 @@ namespace WgWebsite.Data
                         user.BrowsePosition = "/";
                         context.Users.Add(user);
                         context.SaveChanges();
-                        busy = false;
                         return true;
                     }
                 }
-                busy = false;
                 return false;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public IEnumerable<User> GetUserRoles()
         {
-            var users = new List<User>();
-            foreach(var u in context.Users)
+            return SafeTaskWrapperSingle(0, n =>
             {
-                users.Add(new User
+                var users = new List<User>();
+                foreach (var u in context.Users)
                 {
-                    Name = u.Name,
-                    Role = u.Role,
-                    UserId = u.UserId
-                });
-            }
-            return users;
+                    users.Add(new User
+                    {
+                        Name = u.Name,
+                        Role = u.Role,
+                        UserId = u.UserId
+                    });
+                }
+                return users;
+            });
         }
         public IEnumerable<KarmaTask> GetKarmaTasks()
         {
-            return context.Tasks.ToList();
+            return SafeTaskWrapperSingle(0, n => context.Tasks.ToList());
         }
-        public IEnumerable<Drink> GetDrinks()
+        public IEnumerable<Drink> GetDrinks(int retry = 0)
         {
-            return context.Drinks.ToList();
+            return SafeTaskWrapperSingle(0, n => context.Drinks.ToList());
         }
         public bool ChangeUserRoles(IEnumerable<User> users)
         {
-            bool foundall = true;
-            foreach(var user in users)
+            return SafeTaskWrapperSingle(users, users =>
             {
-                EditUser(user, "Role", false);
-            }
-            context.SaveChangesAsync();
-            return foundall;
+                bool foundall = true;
+                foreach (var user in users)
+                {
+                    EditUserPrivate(user, "Role");
+                }
+                context.SaveChangesAsync();
+                return foundall;
+            });
         }
-        public bool EditUser(User user, string parameters, bool save = true)
+        private bool EditUserPrivate(User user, string parameters)
         {
-            if (busy) return false;
-            try {
-                busy = true;
-                var dbuser = context.Users.FirstOrDefault(u => u.UserId == user.UserId);
-                if (dbuser == null)
-                {
-                    busy = false;
-                    return false;
-                }
-                var allfound = true;
-                foreach(var param in parameters.Split(" "))
-                switch (param)
-                {
-                    case "Language":
-                        dbuser.Language = user.Language;
-                        break;
-                    case "Role":
-                        dbuser.Role = user.Role;
-                        break;
-                    case "PassHash":
-                        dbuser.PassHash = user.PassHash;
-                        break;
-                    default:
-                        allfound = false;
-                        break;
-                }
-                context.Update(dbuser);
-                if (save)
-                {
-                    context.SaveChangesAsync();
-                }
-                busy = false;
-                return allfound;
-            }
-            catch (Exception)
+            var dbuser = context.Users.FirstOrDefault(u => u.UserId == user.UserId);
+            if (dbuser == null)
             {
                 busy = false;
                 return false;
             }
-            finally
+            var allfound = true;
+            foreach(var param in parameters.Split(" "))
+            switch (param)
             {
-                busy = false;
+                case "Language":
+                    dbuser.Language = user.Language;
+                    break;
+                case "Role":
+                    dbuser.Role = user.Role;
+                    break;
+                case "PassHash":
+                    dbuser.PassHash = user.PassHash;
+                    break;
+                default:
+                    allfound = false;
+                    break;
             }
+            context.Update(dbuser);
+            return allfound;
         }
-        public void EditKarmaTask(KarmaTask task, bool save = true)
+        public bool EditUser(User user, string parameters)
         {
-            try
+            return SafeTaskWrapperSingle(user, user =>
+            {
+                var res = EditUserPrivate(user, parameters);
+                context.SaveChanges();
+                return res;
+            });
+        }
+        private void EditKarmaTaskPrivate(KarmaTask task)
+        {
+            _ = SafeTaskWrapperSingle(task, task =>
             {
                 if (task.Description == null) task.Description = "";
-                if (busy) return;
-                busy = true;
+
                 if (context.Tasks.Any(t => t.KarmaTaskId == task.KarmaTaskId))
                 {
                     context.Tasks.Update(task);
@@ -216,32 +212,40 @@ namespace WgWebsite.Data
                 {
                     context.Tasks.Add(task);
                 }
-                if (save)
-                    context.SaveChangesAsync();
-                busy = false;
-            }
-            catch (Exception)
-            {
-                busy = false;
-            }
-            finally
-            {
-                busy = false;
-            }
+                return false;
+            });
+        }
+        public void EditKarmaTask(KarmaTask task)
+        {
+            _ = SafeTaskWrapperSingle(task, task => { EditKarmaTaskPrivate(task); return false; });
         }
         public void EditKarmaTasks(IEnumerable<KarmaTask> tasks)
         {
-            foreach (var t in tasks) EditKarmaTask(t, false);
-            context.SaveChangesAsync();
+            _ = SafeTaskWrapperSingle(tasks, tasks =>
+            {
+                foreach (var t in tasks) EditKarmaTaskPrivate(t);
+                context.SaveChangesAsync();
+                return false;
+            });
         }
         public bool DoKarma(KarmaEntry entry)
         {
-            if(entry.Comment == null || entry.Karma < 0 || entry.UserId < 0 || busy) return false;
-            try
+            return SafeTaskWrapperSingle(entry, entry =>
             {
-                busy = true;
+                if (entry.Comment == null || entry.Karma < 0 || entry.UserId < 1) return false;
+                var user = context.Users.FirstOrDefault(u => u.UserId == entry.UserId);
+                if (user == null) return false;
+                if (user.Role.Split(" ").Any(r => r == Roles.Karma))
+                {
+                    entry.Approved = true;
+                }
+                else if (user.Role.Split(" ").Any(r => r == Roles.KarmaGuest))
+                {
+                    entry.Approved = false;
+                }
+                else return false;
                 var task = context.Tasks.ToList().FirstOrDefault(t => t.KarmaTaskId == entry.KarmaTaskId);
-                if(task != null)
+                if (task != null)
                 {
                     task.Highlighted = null;
                     context.Tasks.Update(task);
@@ -249,94 +253,56 @@ namespace WgWebsite.Data
                 entry.Timestamp = DateTime.Now;
                 context.TasksDone.Add(entry);
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch(Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool DeleteKarmaEntry(long entryid)
         {
-            if (busy) return false;
-            try
+            return SafeTaskWrapperSingle(entryid, entryid =>
             {
-                busy = true;
                 context.TasksDone.Remove(context.TasksDone.ToList().FirstOrDefault(e => e.KarmaEntryId == entryid));
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public IEnumerable<User> GetKarmaStats()
         {
-            if (busy) return null;
-            try
+            return SafeTaskWrapperSingle(0, n =>
             {
-                busy = true;
                 var currentPeriod = new DateTime(0);
-                foreach(var balance in context.KarmaBalances.ToArray())
+                var balances = context.KarmaBalances.ToList();
+                foreach (var balance in balances)
                 {
                     if (balance.BalanceTo != null && balance.BalanceTo > currentPeriod)
                         currentPeriod = balance.BalanceTo;
                 }
                 var users = context.Users.ToList();
-                for(var k = 0; k < users.Count; k++)
-                {
-                    var karmalist = new List<KarmaEntry>();
-                    foreach (var td in context.TasksDone.ToList())
-                        if (td.UserId == users[k].UserId)
-                            karmalist.Add(td);
-                    users[k].KarmaEntries = karmalist;
-                }
-                for(var k = 0; k < users.Count; k++)
-                {
-                    users[k].KarmaEntries = users[k].KarmaEntries.Where(e => e.Timestamp > currentPeriod);
-                }
                 var pubusers = new List<User>();
-                foreach(var u in users)
+                foreach (var u in users)
                 {
+                    if (!(u.Role.Split(" ").Any(r => r == Roles.Karma || r == Roles.KarmaGuest))) continue;
                     pubusers.Add(new User
                     {
                         UserId = u.UserId,
-                        Name = u.Name,
-                        KarmaEntries = u.KarmaEntries
+                        Name = u.Name
                     });
                 }
-                busy = false;
+                for (var k = 0; k < pubusers.Count; k++)
+                {
+                    var karmalist = new List<KarmaEntry>();
+                    foreach (var td in context.TasksDone.ToList())
+                        if (td.UserId == pubusers[k].UserId && td.Timestamp > currentPeriod)
+                            karmalist.Add(td);
+                    pubusers[k].KarmaEntries = karmalist;
+                }
                 return pubusers;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return null;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
+
         public bool ActivateDrinks(IEnumerable<Drink> drinks)
         {
-            if (busy) return false;
-            try
+            return SafeTaskWrapperSingle(drinks, drinks =>
             {
-                busy = true;
                 foreach (var drink in drinks)
                 {
                     var dbdrink = context.Drinks.FirstOrDefault(d => d.DrinkId == drink.DrinkId);
@@ -344,28 +310,17 @@ namespace WgWebsite.Data
                     dbdrink.Active = drink.Active;
                     context.Update(dbdrink);
                 }
-                context.SaveChangesAsync();
+                context.SaveChanges();
                 return true;
-            }
-            catch(Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool EnterDrink(long userid, long drinkid)
         {
-            if (busy) return false;
-            var drink = context.Drinks.FirstOrDefault(d => d.DrinkId == drinkid);
-            var user = context.Users.FirstOrDefault(u => u.UserId == userid);
-            if (drink == null || user == null) return false;
-            try
+            return SafeTaskWrapperSingle(drinkid, drinkid =>
             {
-                busy = true;
+                var drink = context.Drinks.FirstOrDefault(d => d.DrinkId == drinkid);
+                var user = context.Users.FirstOrDefault(u => u.UserId == userid);
+                if (drink == null || user == null) return false;
                 var entry = new DrinkPurchase()
                 {
                     Challenged = false,
@@ -378,27 +333,16 @@ namespace WgWebsite.Data
                     UserId = user.UserId
                 };
                 context.Purchased.Add(entry);
-                context.SaveChangesAsync();
+                context.SaveChanges();
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public IEnumerable<User> GetDrinkEntries()
         {
-            if (busy) return null;
-            var pubusers = new List<User>();
-            var users = context.Users.Include(u => u.DrinkPurchases);
-            try
+            return SafeTaskWrapperSingle(0, n =>
             {
-                busy = true;
+                var pubusers = new List<User>();
+                var users = context.Users.Include(u => u.DrinkPurchases);
                 foreach (var u in users)
                 {
                     pubusers.Add(new User
@@ -410,27 +354,16 @@ namespace WgWebsite.Data
                 }
                 busy = false;
                 return pubusers;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return null;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool DeletePurchase(long userid, long purchaseid)
         {
-            if (busy) return false;
-            var user = context.Users.FirstOrDefault(u => u.UserId == userid);
-            var purchase = context.Purchased.FirstOrDefault(p => p.DrinkPurchaseId == purchaseid);
-            if (user == null || purchase == null) return false;
-            var isAdmin = user.Role.Contains(Roles.DrinksAdmin) || user.Role.Contains(Roles.Admin);
-            try
+            return SafeTaskWrapperSingle(purchaseid, purchaseid =>
             {
-                busy = true;
+                var user = context.Users.FirstOrDefault(u => u.UserId == userid);
+                var purchase = context.Purchased.FirstOrDefault(p => p.DrinkPurchaseId == purchaseid);
+                if (user == null || purchase == null) return false;
+                var isAdmin = user.Role.Contains(Roles.DrinksAdmin) || user.Role.Contains(Roles.Admin);
                 if (isAdmin) context.Purchased.Remove(purchase);
                 else
                 {
@@ -438,62 +371,36 @@ namespace WgWebsite.Data
                     context.Purchased.Update(purchase);
                 }
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool RestorePurchase(long userid, long purchaseid)
         {
-            if (busy) return false;
-            var user = context.Users.FirstOrDefault(u => u.UserId == userid);
-            var purchase = context.Purchased.FirstOrDefault(p => p.DrinkPurchaseId == purchaseid);
-            if (user == null || purchase == null) return false;
-            var isAdmin = user.Role.Contains(Roles.DrinksAdmin) || user.Role.Contains(Roles.Admin);
-            try
+            return SafeTaskWrapperSingle(purchaseid, purchaseid =>
             {
-                busy = true;
+                var user = context.Users.FirstOrDefault(u => u.UserId == userid);
+                var purchase = context.Purchased.FirstOrDefault(p => p.DrinkPurchaseId == purchaseid);
+                if (user == null || purchase == null)
+                    return false;
+                var isAdmin = user.Role.Contains(Roles.DrinksAdmin) || user.Role.Contains(Roles.Admin);
                 if (purchase.UserId != userid && !isAdmin) return false;
                 purchase.Challenged = false;
                 context.Update(purchase);
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public bool EnterPayment(long fromuser, long touser, long amount)
         {
-            if (busy) return false;
-            if (fromuser == touser || amount == 0) return true;
-            if (amount < 0) return false;
-            if (fromuser < 0 && touser < 0) return false;
-            try
+            return SafeTaskWrapperSingle(amount, amount =>
             {
-                busy = true;
+                if (fromuser == touser || amount == 0) return true;
+                if (amount < 0) return false;
+                if (fromuser < 0 && touser < 0) return false;
                 if (fromuser < 0 && touser > 0)
                 {
                     if (!context.Users.Any(u => u.UserId == touser))
-                    {
-                        busy = false;
                         return false;
-                    }
                     context.Purchased.Add(new DrinkPurchase
                     {
                         Challenged = false,
@@ -503,13 +410,10 @@ namespace WgWebsite.Data
                         UserId = touser
                     });
                 }
-                else if(fromuser > 0 && touser < 0)
+                else if (fromuser > 0 && touser < 0)
                 {
                     if (!context.Users.Any(u => u.UserId == fromuser))
-                    {
-                        busy = false;
                         return false;
-                    }
                     context.Purchased.Add(new DrinkPurchase
                     {
                         Challenged = false,
@@ -522,10 +426,7 @@ namespace WgWebsite.Data
                 else
                 {
                     if (!context.Users.Any(u => u.UserId == fromuser) || !context.Users.Any(u => u.UserId == touser))
-                    {
-                        busy = false;
                         return false;
-                    }
                     context.Purchased.Add(new DrinkPurchase
                     {
                         Challenged = false,
@@ -543,46 +444,121 @@ namespace WgWebsite.Data
                         UserId = touser
                     });
                 }
-
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
-            {
-                busy = false;
-                return false;
-            }
-            finally
-            {
-                busy = false;
-            }
+            });
         }
         public IEnumerable<TodoTask> GetTodos()
         {
-            return context.Todos.ToList();
+            return SafeTaskWrapperSingle(0, n => context.Todos.ToList());
         }
         public bool AddTodo(TodoTask todo)
         {
-            if (busy) return false;
-            if (todo.Name == null) return false;
-            try
+            return SafeTaskWrapperSingle(todo, todo =>
             {
-                busy = true;
+                if (todo.Karma < 0) return false;
+                if (todo.Name == null || todo.Name.Length < 3) return false;
                 context.Todos.Add(todo);
                 context.SaveChanges();
-                busy = false;
                 return true;
-            }
-            catch (Exception)
+            });
+        }
+        public bool FinishTodo(long todoid, long userid)
+        {
+            return SafeTaskWrapperSingle(todoid, tid =>
             {
-                busy = false;
-                return false;
-            }
-            finally
+                var user = context.Users.FirstOrDefault(u => u.UserId == userid);
+                if (user == null) return false;
+                var todo = context.Todos.FirstOrDefault(t => t.TodoTaskId == tid);
+                if (todo == null) return false;
+                if (todo.Karma < 0) return false;
+                if (todo.Karma > 0)
+                    context.TasksDone.Add(new KarmaEntry
+                    {
+                        Karma = todo.Karma,
+                        UserId = userid,
+                        Comment = "Finished Todo " + todo.Name + " " + todo.TodoTaskId,
+                        Timestamp = DateTime.Now,
+                        Approved = user.Role.Split(" ").Any(r => r == Roles.Karma)
+                    });
+                todo.Done = true;
+                context.Todos.Update(todo);
+                context.SaveChanges();
+                return true;
+            });
+        }
+        public bool RemoveTodo(long todoid)
+        {
+            return SafeTaskWrapperSingle(todoid, todoid =>
             {
-                busy = false;
-            }
+                var todo = context.Todos.FirstOrDefault(t => t.TodoTaskId == todoid);
+                if (todo == null) return false;
+                context.Todos.Remove(todo);
+                context.SaveChanges();
+                return true;
+            });
+        }
+        public bool ApproveKarmaEntry(long entryid)
+        {
+            return SafeTaskWrapperSingle(entryid, entryid =>
+            {
+                if (!context.TasksDone.Any(t => t.KarmaEntryId == entryid)) return false;
+                var karmaentry = context.TasksDone.FirstOrDefault(t => t.KarmaEntryId == entryid);
+                karmaentry.Approved = true;
+                context.TasksDone.Update(karmaentry);
+                context.SaveChanges();
+                return true;
+            });
+        }
+        public bool DeclineKarmaEntry(long entryid)
+        {
+            return SafeTaskWrapperSingle(entryid, entryid =>
+            {
+                if (!context.TasksDone.Any(t => t.KarmaEntryId == entryid)) return false;
+                var karmaentry = context.TasksDone.FirstOrDefault(t => t.KarmaEntryId == entryid);
+                context.TasksDone.Remove(karmaentry);
+                context.SaveChanges();
+                return true;
+            });
+        }
+        public bool UnHighlightTask(long taskid)
+        {
+            return SafeTaskWrapperSingle(taskid, taskid =>
+            {
+                var task = context.Tasks.FirstOrDefault(t => t.KarmaTaskId == taskid);
+                if (task == null) return false;
+                task.Highlighted = null;
+                context.Tasks.Update(task);
+                context.SaveChanges();
+                return true;
+            });
+        }
+        public int CurrentKarma(long userid)
+        {
+            return SafeTaskWrapperSingle(userid, userid =>
+            {
+                var currentPeriod = new DateTime(0);
+                var balances = context.KarmaBalances.ToList();
+                foreach (var balance in balances)
+                {
+                    if (balance.BalanceTo != null && balance.BalanceTo > currentPeriod)
+                        currentPeriod = balance.BalanceTo;
+                }
+                var karma = 0;
+                foreach(var entry in context.TasksDone)
+                {
+                    if (entry.Timestamp > currentPeriod && entry.UserId == userid) karma += entry.Karma;
+                }
+                return karma;
+            });
+        }
+        public long CurrentDebt(long userid)
+        {
+            return SafeTaskWrapperSingle(userid, uid =>
+            {
+                var user = context.Users.Include(u => u.DrinkPurchases).FirstOrDefault(u => u.UserId == uid);
+                return user.DrinkPurchases.Aggregate((long)0, (a, b) => a + b.Cost);
+            });
         }
     }
 }

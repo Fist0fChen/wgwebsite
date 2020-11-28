@@ -23,18 +23,18 @@
     <NotAuthorized>
         <ul class="nav flex-column">
             <li class="nav-item px-3">
-                <input type="text" placeholder="User Name" @bind="@Username" style="width:100%;" />
+                <input id="username" type="text" placeholder="User Name" @bind="@Username" style="width:100%;" />
             </li>
             <li class="nav-item px-3">
-                <input type="password" placeholder="Password" @bind="@Password" style="width:100%;" />
+                <input id="password" type="password" placeholder="Password" @bind="@Password" style="width:100%;" />
             </li>
             <li class="nav-item px-3">
-                <a class="nav-link"
-                   href="/login?paramUsername=@encode(@Username)&paramPassword=@encode(@Password)"
+                <button class="nav-link ml-md-auto btn btn-primary"
+                   onclick="loginHelper()"
                    target="_top">
                     <span class="oi oi-account-login"></span>
                     Login
-                </a>
+                </button>
             </li>
         </ul>
     </NotAuthorized>

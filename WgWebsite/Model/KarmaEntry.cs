@@ -9,6 +9,7 @@ namespace WgWebsite.Model
         public User User { get; set; }
         public string Comment { get; set; }
         public int Karma { get; set; }
+        public bool Approved { get; set; }
         public long? KarmaTaskId { get; set; }
         public KarmaTask KarmaTask { get; set; }
     }

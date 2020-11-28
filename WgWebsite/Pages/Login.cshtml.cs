@@ -37,8 +37,10 @@ namespace WgWebsite.Pages
             User user;
             string userid = "";
             List<string> roles = new List<string>();
+            if (paramPassword == null || paramUsername == null) return LocalRedirect(returnUrl + "?error=login-param-null");
             if(!Program.Test)
                 foreach(var u in dbcontext.Users){
+                    if (u.Name == null || u.PassHash == null) continue;
                     if((u.Name == paramUsername || u.Email == paramUsername) &&
                         CheckHash(u.PassHash, mySHA256.ComputeHash(Encoding.ASCII.GetBytes(paramPassword))))
                     {
@@ -70,8 +72,8 @@ namespace WgWebsite.Pages
             }
             if (userid == "")
             {
-                Thread.Sleep(10000);
-                return LocalRedirect(returnUrl);
+                Thread.Sleep(1000);
+                return LocalRedirect(returnUrl + "?error=wrong-username-or-password");
             }
 
             var claims = new List<Claim>

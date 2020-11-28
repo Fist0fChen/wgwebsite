@@ -1,18 +1,55 @@
 ﻿@page "/migration"
-@{
-    var mig = new WgWebsite.Data.Migration.MigrationFromV1();
+@code{
+    WgWebsite.Data.Migration.MigrationFromV1 mig;
     string userjson = "";
     string tasksjson = "";
+    string karmaentriesjson = "";
+    string drinkentries = "";
+    string productsjson = "";
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        mig = new WgWebsite.Data.Migration.MigrationFromV1();
+    }
 }
 <AuthorizeView>
     <Authorized>
         @if (context.User.Claims.Any(c => WgWebsite.Model.Roles.Admin == c.Value))
         {
-            <textarea placeholder="users" @bind="userjson"></textarea>
-            <button class="btn btn-primary" @onclick=@(e => mig.MigrateUsers(userjson))>Send Users</button>
-
-            <textarea placeholder="tasks" @bind="tasksjson"></textarea>
-            <button class="btn btn-primary" @onclick=@(e => mig.MigrateTasks(tasksjson))>Send Users</button>
+            <div class="card">
+                <h5 class="card-header">Migrate Users</h5>
+                <div class="card-body">
+                    <div><textarea class="w-100" placeholder="users" @bind="userjson"></textarea></div>
+                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateUsers(userjson))>Send Users</button>
+                </div>
+            </div>
+            <div class="card">
+                <h5 class="card-header">Migrate Karma Tasks</h5>
+                <div class="card-body">
+                    <div><textarea class="w-100" placeholder="tasks" @bind="tasksjson"></textarea></div>
+                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateTasks(tasksjson))>Send Tasks</button>
+                </div>
+            </div>
+            <div class="card">
+                <h5 class="card-header">Migrate Karma Entries</h5>
+                <div class="card-body">
+                    <div><textarea class="w-100" placeholder="karma entries" @bind="karmaentriesjson"></textarea></div>
+                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateTaskEntries(karmaentriesjson, userjson, tasksjson))>Send Entries</button>
+                </div>
+            </div>
+            <div class="card">
+                <h5 class="card-header">Migrate Products</h5>
+                <div class="card-body">
+                    <div><textarea class="w-100" placeholder="products" @bind="productsjson"></textarea></div>
+                </div>
+            </div>
+            <div class="card">
+                <h5 class="card-header">Migrate Drink Entries</h5>
+                <div class="card-body">
+                    <div><textarea class="w-100" placeholder="drink entries" @bind="drinkentries"></textarea></div>
+                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateDrinkEntries(drinkentries, userjson, productsjson))>Send Entries</button>
+                </div>
+            </div>
         }
     </Authorized>
 </AuthorizeView>

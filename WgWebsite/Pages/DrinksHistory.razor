@@ -53,7 +53,7 @@
                 <div class="card" style="margin-bottom: 10px;">
                     <h5 class="card-header">@trans.WordFor("Cancellation Requests")</h5>
                     <div class="card-body">
-                        <table>
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>@trans.WordFor("Action")</th>
@@ -134,8 +134,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @{ var counter = 0; }
-                                @foreach (var e in u.DrinkPurchases)
+                                @{
+                                    var counter = 0;
+                                    var sortedentries = u.DrinkPurchases.OrderByDescending(e => e.Timestamp.Ticks);
+                                }
+                                @foreach (var e in sortedentries)
                                 {
                                     if (numShowEntries[u.UserId] > 0)
                                     {
@@ -176,7 +179,7 @@
                                             <span id="timestamp-@e.DrinkPurchaseId" class="d-md-none" style="display:none;">@e.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")</span>
                                         </td>
                                         <td class="d-none d-md-table-cell">@e.Timestamp.ToString("dd.MM.yyyy HH.mm.ss")</td>
-                                        <td>@((float)e.Cost/100) €</td>
+                                        <td>@(((float)e.Cost/100).ToString("0.00")) €</td>
                                     </tr>
                                 }
                                 @if (numShowEntries[u.UserId] > 0)

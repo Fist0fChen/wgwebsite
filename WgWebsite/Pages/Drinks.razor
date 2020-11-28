@@ -15,6 +15,13 @@
             JSRuntime.InvokeVoidAsync("highlightButtonFail", "enterdrink-" + drinkid, trans.WordFor("Failed"));
         }
     }
+    private string CurrentDebt(long userid)
+    {
+        var debt = ((float)db.CurrentDebt(userid)) / 100.0;
+        if (debt < 0) return trans.WordFor("Your Credit") + ": " + debt.ToString("0.00") + "€";
+        else return trans.WordFor("Your Debt") + ": " + debt.ToString("0.00") + "€";
+    }
+
 }
 
 <AuthorizeView>
@@ -25,7 +32,9 @@
             var drinks = db.GetDrinks().ToList();
             trans.SetLanguage(thisuser.Language);
             <div class="card" style="margin-bottom:10px;">
-                <h5 style="cursor:pointer" onclick="$('#options-body').slideToggle()" class="card-header">@trans.WordFor("Options")</h5>
+                <h5 style="cursor:pointer" onclick="$('#options-body').slideToggle()" class="card-header">
+                    @CurrentDebt(thisuser.UserId)
+                </h5>
                 <div id="options-body" style="display:none;" class="card-body">
                     @if (context.User.Claims.Any(c => c.Value == Model.Roles.DrinksAdmin))
                     {
@@ -44,7 +53,7 @@
                         var idx = k;
                         <div style="margin: 5px;" class="btn-group mr-2">
                             <button id="enterdrink-@drinks[idx].DrinkId" class="btn btn-primary" @onclick=@(e => EnterDrink(thisuser.UserId, drinks[idx].DrinkId))>@drinks[idx].Name</button>
-                            <button class="btn btn-success" @onclick=@(e => EnterDrink(thisuser.UserId, drinks[idx].DrinkId))>@(((float)drinks[idx].Price)/100) €</button>
+                            <button class="btn btn-success" @onclick=@(e => EnterDrink(thisuser.UserId, drinks[idx].DrinkId))>@((((float)drinks[idx].Price)/100).ToString("0.00")) €</button>
                         </div>
                     }
                 </div>

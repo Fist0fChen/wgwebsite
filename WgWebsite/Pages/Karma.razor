@@ -6,6 +6,30 @@
 
 
 @code {
+    private Dictionary<string, Dictionary<string, List<Model.KarmaTask>>> categories;
+    private List<Model.KarmaTask> tasks;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
+        tasks = db.GetKarmaTasks().ToList();
+        foreach (var t in tasks)
+        {
+            if (!t.Active) continue;
+            var taskcats = t.Categories.Split(" ");
+            foreach (var cat in taskcats)
+            {
+                if (!cat.Contains(".")) continue;
+                var lvl1 = cat.Split(".")[0];
+                var lvl2 = cat.Split(".")[1];
+                if (!categories.Keys.Contains(lvl1))
+                    categories.Add(lvl1, new Dictionary<string, List<Model.KarmaTask>>());
+                if (!categories[lvl1].Keys.Contains(lvl2))
+                    categories[lvl1].Add(lvl2, new List<Model.KarmaTask>());
+                categories[lvl1][lvl2].Add(t);
+            }
+        }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -20,34 +44,16 @@
     <Authorized>
         @{
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
-
             trans.SetLanguage(thisuser.Language);
-            var tasks = db.GetKarmaTasks();
-            var categories = new Dictionary<string, Dictionary<string, List<Model.KarmaTask>>>();
-            var usedkey = new List<string>();
             var datezero = new DateTime(0);
-            foreach (var t in tasks)
-            {
-                if (!t.Active) continue;
-                var taskcats = t.Categories.Split(" ");
-                foreach (var cat in taskcats)
-                {
-                    if (!cat.Contains(".")) continue;
-                    var lvl1 = cat.Split(".")[0];
-                    var lvl2 = cat.Split(".")[1];
-                    if (!categories.Keys.Contains(lvl1))
-                        categories.Add(lvl1, new Dictionary<string, List<Model.KarmaTask>>());
-                    if (!categories[lvl1].Keys.Contains(lvl2))
-                        categories[lvl1].Add(lvl2, new List<Model.KarmaTask>());
-                    categories[lvl1][lvl2].Add(t);
-                }
-            }
         }
-        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+        @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma || c.Value == Model.Roles.KarmaGuest))
         {
             <div class="card" style="margin-bottom:10px;">
                 <div style="cursor:pointer" class="card-header row">
-                    <div style=" font-size: 1.25rem; font-weight: 500;" class="col-9" onclick="$('#options-body').slideToggle()">@trans.WordFor("Options")</div>
+                    <div style=" font-size: 1.25rem; font-weight: 500;" class="col-9" onclick="$('#options-body').slideToggle()">
+                        @trans.WordFor("Your Karma"): @db.CurrentKarma(thisuser.UserId)
+                    </div>
                     <div class="col" style="text-align: center">
                         <img id="edit-toggle" src="@Model.Themes.Icon("cog-wheel")" style="width:30px;" onclick="toggleKarmaEdit()" />
                     </div>

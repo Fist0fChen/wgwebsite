@@ -2,9 +2,33 @@
 @inject Data.Translator trans
 @inject Data.DataBaseService db
 
+@code{
+    string title;
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        SetTitle("Home");
+    }
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    private void SetTitle(string t)
+    {
+        if (t == "")
+            title = "";
+        else
+            title = " - " + trans.WordFor(t);
+    }
+}
+
 <div class="top-row pl-4 navbar navbar-dark">
-    <a class="navbar-brand" href="">@trans.WordFor("NavbarTitle")</a>
-    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+    <a class="navbar-brand" href="">@(trans.WordFor("NavbarTitle") + title)</a>
+    <button class="navbar-toggler" onclick="$('#nav-menu').slideToggle();">
         <span class="navbar-toggler-icon"></span>
     </button>
 </div>
@@ -14,10 +38,10 @@
             var thisuser = db.GetUserById(long.Parse(context.User.Claims.FirstOrDefault(c => c.Type == "UserId").Value));
             trans.SetLanguage(thisuser.Language);
         }
-        <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+        <div id="nav-menu">
             <ul class="nav flex-column">
-                <li class="nav-item px-3">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <li class="nav-item px-3" @onclick=@(e => SetTitle("Home"))>
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All" onclick="if($(document).width() < 768)$('#nav-menu').slideUp();">
                         <span class="oi oi-home" aria-hidden="true"></span> Home
                     </NavLink>
                 </li>
@@ -26,31 +50,31 @@
                         <span class="oi oi-plus" aria-hidden="true"></span> Counter
                     </NavLink>
                 </li>-->
-                @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+                @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma || c.Value == Model.Roles.KarmaGuest))
                 {
-                    <li class="nav-item px-3">
-                        <NavLink class="nav-link" href="karma">
+                    <li class="nav-item px-3" @onclick=@(e => SetTitle("Karma"))>
+                        <NavLink class="nav-link" href="karma" onclick="if($(document).width() < 768)$('#nav-menu').slideUp();">
                             <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("yin-yang-w")" /></div>Karma
                         </NavLink>
                     </li>
                 }
                 @if (context.User.Claims.Any(c => c.Value == Model.Roles.Drinks))
                 {
-                    <li class="nav-item px-3">
-                        <NavLink class="nav-link" href="drinks">
+                    <li class="nav-item px-3" @onclick=@(e => SetTitle("Drinks"))>
+                        <NavLink class="nav-link" href="drinks" onclick="if($(document).width() < 768)$('#nav-menu').slideUp();">
                             <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("glass-w")" /></div>@trans.WordFor("Drinks")
                         </NavLink>
                     </li>
                 }
-                @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma))
+                @if (context.User.Claims.Any(c => c.Value == Model.Roles.Karma || c.Value == Model.Roles.KarmaGuest))
                 {
-                    <li class="nav-item px-3">
-                        <NavLink class="nav-link" href="todos">
+                    <li class="nav-item px-3" @onclick=@(e => SetTitle("Todo"))>
+                        <NavLink class="nav-link" href="todos" onclick="if($(document).width() < 768)$('#nav-menu').slideUp();">
                             <div style="width:32px;"><img style="width: 20px;" src="@Model.Themes.Icon("check-square-w")" /></div>@trans.WordFor("Todo")
                         </NavLink>
                     </li>
                 }
-                <li class="nav-item px-3">
+                <li class="nav-item px-3" @onclick=@(e => title = "")>
                     <NavLink class="nav-link" href="/logout?returnUrl=/">
                         <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
                     </NavLink>
@@ -62,13 +86,3 @@
         <LoginControl />
     </NotAuthorized>
     </AuthorizeView>
-@code {
-    private bool collapseNavMenu = true;
-
-    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-    }
