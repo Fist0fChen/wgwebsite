@@ -39,7 +39,7 @@ function highlightButtonFail(id, text, access) {
 function reload() {
     window.location.href.reload();
 }
-function getCookie(key) {
+/*function getCookie(key) {
     let cookies = document.cookie;
     for (let c of cookies.split(';')) {
         if (!c.includes('=')) continue;
@@ -50,7 +50,7 @@ function getCookie(key) {
 }
 function setCookie(key, value) {
 
-}
+}*/
 let CatData = {};
 function showCategories(selid, inpid, categories) {
     CatData.categories = categories;
@@ -180,4 +180,26 @@ function resizestuff() {
     else {
         $('#scroll-container').css('height', ($(window).height() - 56) + "px");
     }
+}
+
+async function AJAXSubmit(oFormElement) {
+    const formData = new FormData(oFormElement);
+    try {
+        const response = await fetch(oFormElement.action, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': getCookie('RequestVerificationToken')
+            },
+            body: formData
+        });
+        oFormElement.elements.namedItem("result").value =
+            'Result: ' + response.status + ' ' + response.statusText;
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+function getCookie(name) {
+    var value = "; " + document.cookie;
+    var parts = value.split("; " + name + "=");
+    if (parts.length == 2) return parts.pop().split(";").shift();
 }

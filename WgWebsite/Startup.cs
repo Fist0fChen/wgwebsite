@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using System.Net.Http;
+using WgWebsite.Filters;
 using WgWebsite.Data;
 
 namespace WgWebsite
@@ -36,7 +37,18 @@ namespace WgWebsite
             });
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
 
-            services.AddRazorPages();
+            services.AddControllers();
+            services.AddRazorPages(options =>
+            {
+                options.Conventions.AddPageApplicationModelConvention("/StreamedSingleFileUploadPhysical",
+                model =>
+                {
+                    model.Filters.Add(
+                        new GenerateAntiforgeryTokenCookieAttribute());
+                    model.Filters.Add(
+                        new DisableFormValueModelBindingAttribute());
+                });
+            });
             services.AddServerSideBlazor();
             services.AddSingleton<WeatherForecastService>();
             services.AddSingleton<Translator>();
@@ -74,6 +86,7 @@ namespace WgWebsite
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
             });

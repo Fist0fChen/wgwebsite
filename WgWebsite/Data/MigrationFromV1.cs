@@ -222,7 +222,8 @@ namespace WgWebsite.Data.Migration
         public float? Amount;
         public int? ProductId;
         public int UserId;
-        public long TimeStamp;
+        public long Timestamp;
         public float? Ratio;
+        public int? NEntries;
     }
 }

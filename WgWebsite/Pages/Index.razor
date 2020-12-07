@@ -24,7 +24,7 @@
         users = db.GetUserRoles()?.ToList();
         currentRoles = Roles.getAll();
         roles = new Dictionary<long, Dictionary<string, bool>>();
-        if(users != null)
+        if (users != null)
         {
             foreach (var u in users)
             {
@@ -109,7 +109,10 @@
         }
         <div class="card">
             <div class="card-body">
-                <img class="card-img-top" src="..." alt="Card image cap">
+                @if (thisuser.PicturePath != null && thisuser.PicturePath.Length > 0)
+                {
+                    <img class="card-img-top" src="@thisuser.PicturePath" alt="Card image cap">
+                }
                 <h5 class="card-title">@trans.WordFor("Hello") @thisuser.Name</h5>
                 <div class="card-text">blabla</div>
             </div>
@@ -143,9 +146,23 @@
                 <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#picture-body').slideUp(); $('#picture-body').slideToggle();">@trans.WordFor("Change Picture")</h5>
                 <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#picture-body').slideUp(); $('#picture-body').slideToggle();">@trans.WordFor("Add or change your profile picture")</div>
                 <div style="display:none" id="picture-body" class="card-body settings-body">
-                    TODO: upload field
+                    <form id="uploadForm" action="Streaming/UploadPhysical" method="post"
+                          enctype="multipart/form-data" onsubmit="AJAXSubmit(this);return false;">
+                        <dl>
+                            <dd>
+                                <input id="file" type="file" name="file" />
+                            </dd>
+                        </dl>
+
+                        <input class="btn btn-primary w-100" type="submit" value="Upload" />
+
+                        <!--div style="margin-top:15px">
+                            <output form="uploadForm" name="result"></output>
+                        </div-->
+                    </form>
                 </div>
             </div>
+
             <div class="card h-100">
                 <h5 class="card-header" style="cursor:pointer;" onclick="$('.settings-body').not('#password-body').slideUp(); $('#password-body').slideToggle();">@trans.WordFor("Change Password")</h5>
                 <div class="card-subtitle mb-2 text-muted" style=" padding: 1.25rem; padding-bottom: 0.5rem;" onclick="$('.settings-body').not('#password-body').slideUp(); $('#password-body').slideToggle();">@trans.WordFor("Change your password")</div>

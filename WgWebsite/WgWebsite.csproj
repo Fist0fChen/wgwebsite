@@ -23,5 +23,10 @@
     <Folder Include="Model\" />
     <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\icons\" />
+    <Folder Include="FilterAttributes\" />
+    <Folder Include="Controllers\" />
+    <Folder Include="UploadHelpers\" />
+    <Folder Include="wwwroot\lib\" />
+    <Folder Include="wwwroot\images\" />
   </ItemGroup>
 </Project>

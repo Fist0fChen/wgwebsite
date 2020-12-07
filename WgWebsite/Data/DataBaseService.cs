@@ -12,14 +12,13 @@ namespace WgWebsite.Data
     public class DataBaseService
     {
         private const int Retries = 3;
-        private KarmaDataContext context;
-        private bool busy;
+        private static readonly KarmaDataContext context = new KarmaDataContext();
+        private static bool busy;
         private Random rnd;
         private int RandomDelay => 50 + rnd.Next(100);
         public DataBaseService()
         {
             rnd = new Random(DateTime.Now.Millisecond);
-            context = new KarmaDataContext();
             /*if(context.KarmaBalances.ToList().Count == 0)
             {
                 context.KarmaBalances.Add(new KarmaBalance
@@ -28,6 +27,24 @@ namespace WgWebsite.Data
                     BalanceTo = DateTime.Now
                 });
             }*/
+        }
+        public static async Task<bool> ChangePicture(long userid, string file)
+        {
+            var user = await context.Users.FirstOrDefaultAsync(u => u.UserId == userid);
+            if (user == null) return false;
+            var oldpath = user.PicturePath;
+            if (oldpath != null && oldpath.Length > 0)
+            {
+                try
+                {
+                    System.IO.File.Delete("/app/wwwroot/" + oldpath);
+                }
+                catch { }
+            }
+            user.PicturePath = "images/" + file;
+            context.Users.Update(user);
+            _ = await context.SaveChangesAsync();
+            return true;
         }
         private T SafeTaskWrapperSingle<T, U>(U arg, Func<U, T> func, int retry = 0)
         {
@@ -97,7 +114,8 @@ namespace WgWebsite.Data
                     Notifications = user.Notifications,
                     Role = user.Role,
                     Theme = user.Theme,
-                    UserId = user.UserId
+                    UserId = user.UserId,
+                    PicturePath = user.PicturePath
                 };
                 return usercp;
             });

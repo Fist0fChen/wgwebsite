@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: WgWebsite/Dockerfile
+    volumes:
+     - websitedata:/home/data
 
   karmadb:
     image: mysql
@@ -18,4 +20,5 @@ services:
       - dbdata:/var/lib/mysql
 
 volumes:
-  dbdata: 
+  dbdata:
+  websitedata:

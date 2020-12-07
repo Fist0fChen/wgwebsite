@@ -11,6 +11,7 @@ services:
     volumes:
       - ~/.aspnet/https:/root/.aspnet/https:ro
       - ~/.microsoft/usersecrets:/root/.microsoft/usersecrets:ro
+      - ./websitedata:/home/data
 
   karmadb:
     volumes:

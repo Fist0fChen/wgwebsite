@@ -4,8 +4,8 @@
     string userjson = "";
     string tasksjson = "";
     string karmaentriesjson = "";
-    string drinkentries = "";
     string productsjson = "";
+    string drinkentriesjson = "";
     protected override void OnInitialized()
     {
         base.OnInitialized();
@@ -46,8 +46,8 @@
             <div class="card">
                 <h5 class="card-header">Migrate Drink Entries</h5>
                 <div class="card-body">
-                    <div><textarea class="w-100" placeholder="drink entries" @bind="drinkentries"></textarea></div>
-                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateDrinkEntries(drinkentries, userjson, productsjson))>Send Entries</button>
+                    <div><textarea class="w-100" placeholder="drink entries" @bind="drinkentriesjson"></textarea></div>
+                    <button class="btn btn-primary w-100" @onclick=@(e => mig.MigrateDrinkEntries(drinkentriesjson, userjson, productsjson))>Send Drink Entries</button>
                 </div>
             </div>
         }
