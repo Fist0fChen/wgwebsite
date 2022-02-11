@@ -1,5 +1,6 @@
 # WG website
-manage housekeeping in a shared flat  
+A websize to manage housekeeping in a shared flat.  
+This is the successor project to https://github.com/JF0C/wgwebsite01  
 
 ## Troubleshooting Dev
 docker stop $(docker ps -a -q)  
